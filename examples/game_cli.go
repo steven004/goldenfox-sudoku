@@ -15,7 +15,7 @@ import (
 
 func main() {
 	fmt.Println("╔════════════════════════════════════╗")
-	fmt.Println("║   Golden Fox Sudoku - CLI Demo    ║")
+	fmt.Println("║   Golden Fox Sudoku - CLI Demo      ║")
 	fmt.Println("╚════════════════════════════════════╝")
 	fmt.Println()
 
@@ -29,8 +29,8 @@ func main() {
 	gm := game.NewGameManager(gen)
 
 	// Start a new game
-	fmt.Println("Starting a new Medium difficulty puzzle...")
-	if err := gm.NewGame(engine.Medium); err != nil {
+	fmt.Println("Starting a new Beginner difficulty puzzle...")
+	if err := gm.NewGame(engine.Beginner); err != nil {
 		log.Fatalf("Failed to start game: %v", err)
 	}
 
