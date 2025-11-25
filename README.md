@@ -22,21 +22,27 @@ goldenfox-sudoku/
 ├── Data/            # 5,000 curated puzzles dataset
 ├── Design/          # Design documents and GUI mockups
 ├── examples/        # Example programs
-└── go.mod           # Go module definition
-```
+└── go.mod           ## 🚀 Getting Started
 
-## Installation
+### Prerequisites
+- Go 1.20 or higher
+- Fyne dependencies (see [Fyne Getting Started](https://developer.fyne.io/started/))
+
+### Installation
 ```bash
 git clone https://github.com/steven004/goldenfox-sudoku.git
 cd goldenfox-sudoku
-go mod tidy
+go mod download
 ```
 
-## Usage
-
-### Run Generator Demo
+### Running the App (GUI)
 ```bash
-go run examples/generator_demo.go
+go run cmd/sudoku/main.go
+```
+
+### Running the CLI Demo
+```bash
+go run examples/game_cli.go
 ```
 
 ### Run Tests
