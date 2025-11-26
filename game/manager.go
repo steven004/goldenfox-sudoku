@@ -237,3 +237,15 @@ func (gm *GameManager) IsCellGiven(row, col int) bool {
 	}
 	return gm.currentBoard.Cells[row][col].Given
 }
+
+// GetMistakes returns the current mistake count
+func (gm *GameManager) GetMistakes() int {
+	// TODO: Implement actual mistake tracking
+	return 0
+}
+
+// GetElapsedTime returns the formatted elapsed time string
+func (gm *GameManager) GetElapsedTime() string {
+	// TODO: Implement actual timer
+	return "00:00"
+}

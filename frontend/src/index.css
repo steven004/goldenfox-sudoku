@@ -1,0 +1,23 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  @apply bg-fox-charcoal text-fox-light font-sans;
+  margin: 0;
+  overflow: hidden; /* Prevent scrolling */
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  @apply bg-fox-charcoal;
+}
+::-webkit-scrollbar-thumb {
+  @apply bg-fox-dark rounded;
+}
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-fox-orange;
+}

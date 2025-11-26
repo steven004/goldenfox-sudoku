@@ -1,74 +1,19 @@
-# Golden Fox Sudoku
+# README
 
-A modular, extensible Sudoku application written in Go with a Fyne-based GUI.
+## About
 
-## Features (Planned)
-- 🦊 Beautiful GUI with fox-themed design
-- 🎮 5 difficulty levels (Beginner, Easy, Medium, Hard, Expert)
-- ✏️ Pencil notes with auto-clearing
-- ↩️ Limited undo/eraser (3 uses per game)
-- 📊 Statistics tracking and user progress
-- 💾 Save/Load game functionality
-- ⏱️ Timer and mistake counter
+This is the official Wails React-TS template.
 
-## Current Status
-✅ **Puzzle Generator Module** - Complete with 5,000 curated puzzles
+You can configure the project by editing `wails.json`. More information about the project settings can be found
+here: https://wails.io/docs/reference/project-config
 
-## Project Structure
-```
-goldenfox-sudoku/
-├── engine/          # Core Sudoku logic and interfaces
-├── generator/       # Puzzle generation (pre-loaded puzzles)
-├── Data/            # 5,000 curated puzzles dataset
-├── Design/          # Design documents and GUI mockups
-├── examples/        # Example programs
-└── go.mod           ## 🚀 Getting Started
+## Live Development
 
-### Prerequisites
-- Go 1.20 or higher
-- Fyne dependencies (see [Fyne Getting Started](https://developer.fyne.io/started/))
+To run in live development mode, run `wails dev` in the project directory. This will run a Vite development
+server that will provide very fast hot reload of your frontend changes. If you want to develop in a browser
+and have access to your Go methods, there is also a dev server that runs on http://localhost:34115. Connect
+to this in your browser, and you can call your Go code from devtools.
 
-### Installation
-```bash
-git clone https://github.com/steven004/goldenfox-sudoku.git
-cd goldenfox-sudoku
-go mod download
-```
+## Building
 
-### Running the App (GUI)
-```bash
-go run cmd/sudoku/main.go
-```
-
-### Running the CLI Demo
-```bash
-go run examples/game_cli.go
-```
-
-### Run Tests
-```bash
-go test ./...
-```
-
-## Module Name
-```
-github.com/steven004/goldenfox-sudoku
-```
-
-## Development
-
-### Implemented
-- ✅ Engine types and interfaces
-- ✅ Puzzle generator with 5,000 curated puzzles
-- ✅ Comprehensive unit tests
-
-### In Progress
-- 🚧 Core engine (board operations, validation)
-- 🚧 Game manager (state management, undo)
-- 🚧 GUI with Fyne
-
-## License
-MIT License (or your preferred license)
-
-## Author
-Steven (steven004)
+To build a redistributable, production mode package, use `wails build`.

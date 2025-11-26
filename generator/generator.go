@@ -11,16 +11,22 @@ import (
 	"github.com/steven004/goldenfox-sudoku/engine"
 )
 
+// PuzzleData holds the puzzle string and its solution
+type PuzzleData struct {
+	Puzzle   string
+	Solution string
+}
+
 // PreloadedGenerator implements engine.PuzzleGenerator using pre-loaded puzzles
 type PreloadedGenerator struct {
-	puzzles map[engine.DifficultyLevel][]string
+	puzzles map[engine.DifficultyLevel][]PuzzleData
 	rand    *rand.Rand
 }
 
 // NewPreloadedGenerator creates a new generator that loads puzzles from a CSV file
 func NewPreloadedGenerator(dataPath string) (*PreloadedGenerator, error) {
 	gen := &PreloadedGenerator{
-		puzzles: make(map[engine.DifficultyLevel][]string),
+		puzzles: make(map[engine.DifficultyLevel][]PuzzleData),
 		rand:    rand.New(rand.NewSource(time.Now().UnixNano())),
 	}
 
@@ -62,6 +68,7 @@ func (g *PreloadedGenerator) loadPuzzles(dataPath string) error {
 		}
 
 		puzzleStr := record[0]
+		solutionStr := record[1]
 		levelStr := record[4]
 
 		// Map level string to DifficultyLevel
@@ -81,7 +88,11 @@ func (g *PreloadedGenerator) loadPuzzles(dataPath string) error {
 			continue // Skip unknown levels
 		}
 
-		g.puzzles[level] = append(g.puzzles[level], puzzleStr)
+		data := PuzzleData{
+			Puzzle:   puzzleStr,
+			Solution: solutionStr,
+		}
+		g.puzzles[level] = append(g.puzzles[level], data)
 	}
 
 	// Verify we have puzzles for all levels
@@ -97,21 +108,117 @@ func (g *PreloadedGenerator) loadPuzzles(dataPath string) error {
 
 // Generate returns a random puzzle of the specified difficulty
 func (g *PreloadedGenerator) Generate(difficulty engine.DifficultyLevel) (*engine.SudokuBoard, error) {
-	puzzles, ok := g.puzzles[difficulty]
+	// Determine the pool to use and extra clues to add
+	var poolLevel engine.DifficultyLevel
+	var extraClues int
+
+	switch difficulty {
+	case engine.Beginner:
+		poolLevel = engine.Beginner
+		extraClues = 10
+	case engine.Easy:
+		poolLevel = engine.Easy
+		extraClues = 8
+	case engine.Medium:
+		poolLevel = engine.Medium
+		extraClues = 6
+	case engine.Hard:
+		poolLevel = engine.Hard
+		extraClues = 4
+	case engine.Expert:
+		poolLevel = engine.Expert
+		extraClues = 2
+	case engine.FoxGod:
+		poolLevel = engine.Expert // FoxGod uses Expert pool with no help
+		extraClues = 0
+	default:
+		return nil, fmt.Errorf("unknown difficulty: %s", difficulty.String())
+	}
+
+	puzzles, ok := g.puzzles[poolLevel]
 	if !ok || len(puzzles) == 0 {
-		return nil, fmt.Errorf("no puzzles available for difficulty: %s", difficulty.String())
+		return nil, fmt.Errorf("no puzzles available for difficulty: %s", poolLevel.String())
 	}
 
 	// Select a random puzzle
-	puzzleStr := puzzles[g.rand.Intn(len(puzzles))]
+	index := g.rand.Intn(len(puzzles))
+	puzzleData := puzzles[index]
+
+	fmt.Printf("Generator: Requesting %s difficulty (Pool: %s, Extra Clues: %d)\n", difficulty.String(), poolLevel.String(), extraClues)
+	fmt.Printf("Generator: Selected puzzle index %d\n", index)
 
 	// Parse the puzzle string into a SudokuBoard
-	board, err := parsePuzzleString(puzzleStr)
+	board, err := parsePuzzleString(puzzleData.Puzzle)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse puzzle: %w", err)
 	}
 
+	// Add extra clues if needed
+	if extraClues > 0 {
+		if err := g.addExtraClues(board, puzzleData.Solution, extraClues); err != nil {
+			fmt.Printf("Warning: Failed to add extra clues: %v\n", err)
+		}
+	}
+
+	// Count clues for verification
+	clueCount := 0
+	for i := 0; i < 9; i++ {
+		for j := 0; j < 9; j++ {
+			if board.Cells[i][j].Given {
+				clueCount++
+			}
+		}
+	}
+	fmt.Printf("Generator: Puzzle has %d clues (Original + Extra)\n", clueCount)
+
 	return board, nil
+}
+
+// addExtraClues reveals N random empty cells using the solution
+func (g *PreloadedGenerator) addExtraClues(board *engine.SudokuBoard, solutionStr string, count int) error {
+	if len(solutionStr) != 81 {
+		return fmt.Errorf("invalid solution string length")
+	}
+
+	// Find all empty cells
+	type coord struct{ r, c int }
+	var emptyCells []coord
+
+	for r := 0; r < 9; r++ {
+		for c := 0; c < 9; c++ {
+			if board.Cells[r][c].Value == 0 {
+				emptyCells = append(emptyCells, coord{r, c})
+			}
+		}
+	}
+
+	// Shuffle empty cells
+	g.rand.Shuffle(len(emptyCells), func(i, j int) {
+		emptyCells[i], emptyCells[j] = emptyCells[j], emptyCells[i]
+	})
+
+	// Reveal the first N cells
+	revealed := 0
+	for _, cell := range emptyCells {
+		if revealed >= count {
+			break
+		}
+
+		// Get value from solution string
+		idx := cell.r*9 + cell.c
+		valChar := solutionStr[idx]
+		if valChar < '1' || valChar > '9' {
+			continue // Skip invalid chars in solution
+		}
+		val := int(valChar - '0')
+
+		// Set value on board
+		board.Cells[cell.r][cell.c].Value = val
+		board.Cells[cell.r][cell.c].Given = true
+		revealed++
+	}
+
+	return nil
 }
 
 // parsePuzzleString converts an 81-character string into a SudokuBoard

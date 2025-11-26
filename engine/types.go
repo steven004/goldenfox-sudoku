@@ -9,6 +9,7 @@ const (
 	Medium
 	Hard
 	Expert
+	FoxGod
 )
 
 // String returns the string representation of the difficulty level
@@ -24,6 +25,8 @@ func (d DifficultyLevel) String() string {
 		return "Hard"
 	case Expert:
 		return "Expert"
+	case FoxGod:
+		return "FoxGod"
 	default:
 		return "Unknown"
 	}
@@ -31,9 +34,9 @@ func (d DifficultyLevel) String() string {
 
 // Cell represents a single cell in the Sudoku grid
 type Cell struct {
-	Value      int         // 0 for empty, 1-9 for filled
-	Given      bool        // true if this is an original clue
-	Candidates map[int]bool // pencil notes (candidate numbers)
+	Value      int          `json:"value"`      // 0 for empty, 1-9 for filled
+	Given      bool         `json:"given"`      // true if this is an original clue
+	Candidates map[int]bool `json:"candidates"` // pencil notes (candidate numbers)
 }
 
 // NewCell creates a new empty cell
@@ -47,13 +50,13 @@ func NewCell() Cell {
 
 // Coordinate represents a position on the board
 type Coordinate struct {
-	Row int
-	Col int
+	Row int `json:"row"`
+	Col int `json:"col"`
 }
 
 // SudokuBoard represents a 9x9 Sudoku grid
 type SudokuBoard struct {
-	Cells [9][9]Cell
+	Cells [9][9]Cell `json:"cells"`
 }
 
 // NewBoard creates a new empty Sudoku board

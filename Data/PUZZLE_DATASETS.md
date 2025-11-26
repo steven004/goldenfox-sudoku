@@ -12,17 +12,20 @@
 - **Clues**: 19-31 clues per puzzle (most have 23-26)
 
 ### Difficulty Distribution:
-- **43%** have difficulty 0 (solvable by simple scanning)
-- Ratings go up to 8.5 (very challenging)
+- **43%** have## Difficulty Levels
 
-### Mapping to Our 5 Levels:
-```
-Beginner: difficulty 0.0 - 1.0  (simple scanning)
-Easy:     difficulty 1.1 - 2.5  (basic techniques)
-Medium:   difficulty 2.6 - 4.5  (intermediate)
-Hard:     difficulty 4.6 - 6.5  (advanced)
-Expert:   difficulty 6.6 - 8.5  (very challenging)
-```
+The generator uses the following mapping to determine difficulty, with additional resolved numbers added to lower the entry barrier:
+
+| Level | Difficulty Score | Extra Clues | Description |
+| :--- | :--- | :--- | :--- |
+| **Beginner** | 0.0 - 1.0 | **+10** | Simple scanning. Very accessible. |
+| **Easy** | 1.1 - 2.5 | **+8** | Basic techniques. |
+| **Medium** | 2.6 - 4.5 | **+6** | Intermediate strategies. |
+| **Hard** | 4.6 - 6.5 | **+4** | Advanced logic required. |
+| **Expert** | 6.6 - 8.5 | **+2** | Very challenging. |
+| **FoxGod** | 6.6 - 8.5 | **+0** | The ultimate challenge (Original Expert). |
+
+*Note: Extra clues are randomly selected from the solution and revealed on the board to artificially lower the difficulty.*)
 
 ### CSV Format:
 Each row contains:
