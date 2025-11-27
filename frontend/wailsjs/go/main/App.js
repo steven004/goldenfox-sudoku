@@ -2,6 +2,10 @@ export function Greet(arg1) {
     return window['go']['main']['App']['Greet'](arg1);
 }
 
+export function ClearCell() {
+    return window['go']['main']['App']['ClearCell']();
+}
+
 export function GetBoard() {
     return window['go']['main']['App']['GetBoard']();
 }
@@ -24,4 +28,16 @@ export function TogglePencilMode() {
 
 export function GetGameState() {
     return window['go']['main']['App']['GetGameState']();
+}
+
+export function GetHistory() {
+    return window['go']['main']['App']['GetHistory']();
+}
+
+export function LoadGame(arg1) {
+    return window['go']['main']['App']['LoadGame'](arg1);
+}
+
+export function SaveGame() {
+    return window['go']['main']['App']['SaveGame']();
 }

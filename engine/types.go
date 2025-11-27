@@ -37,6 +37,7 @@ type Cell struct {
 	Value      int          `json:"value"`      // 0 for empty, 1-9 for filled
 	Given      bool         `json:"given"`      // true if this is an original clue
 	Candidates map[int]bool `json:"candidates"` // pencil notes (candidate numbers)
+	IsInvalid  bool         `json:"isInvalid"`  // True if the value conflicts with another cell
 }
 
 // NewCell creates a new empty cell

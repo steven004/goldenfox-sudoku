@@ -17,6 +17,11 @@ export const Board: React.FC<BoardProps> = ({ board, selectedRow, selectedCol, o
     // Helper to check if a cell is a peer of the selected cell
     const isPeer = (r: number, c: number) => {
         if (selectedRow === -1 || selectedCol === -1) return false;
+
+        // Only highlight peers if the selected cell is BLANK
+        const selectedCell = board.cells[selectedRow][selectedCol];
+        if (selectedCell.value !== 0) return false;
+
         if (r === selectedRow) return true;
         if (c === selectedCol) return true;
         // Check block

@@ -255,3 +255,39 @@ func (b *SudokuBoard) Reset() {
 		}
 	}
 }
+
+// String returns a simple string representation of the board (81 digits)
+func (b *SudokuBoard) String() string {
+	var s string
+	for i := 0; i < 9; i++ {
+		for j := 0; j < 9; j++ {
+			s += fmt.Sprintf("%d", b.Cells[i][j].Value)
+		}
+	}
+	return s
+}
+
+// ParseBoard creates a SudokuBoard from its string representation
+func ParseBoard(s string) (*SudokuBoard, error) {
+	if len(s) != 81 {
+		return nil, fmt.Errorf("invalid board string length: %d (expected 81)", len(s))
+	}
+
+	b := NewBoard()
+	for i := 0; i < 81; i++ {
+		val := int(s[i] - '0')
+		if val < 0 || val > 9 {
+			return nil, fmt.Errorf("invalid character in board string at index %d: %c", i, s[i])
+		}
+
+		row := i / 9
+		col := i % 9
+		b.Cells[row][col].Value = val
+
+		// Note: We don't know which were 'Given' from just the string of values.
+		// The caller must handle setting 'Given' status if loading a fresh puzzle,
+		// or we might need a separate mask if we want to preserve that perfectly.
+		// For now, we assume this reconstructs the *current state*.
+	}
+	return b, nil
+}

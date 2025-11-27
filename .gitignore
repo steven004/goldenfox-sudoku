@@ -38,3 +38,4 @@ dist/
 
 # Application specific
 *.log
+user_data.json

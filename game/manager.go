@@ -2,6 +2,7 @@ package game
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/steven004/goldenfox-sudoku/engine"
 )
@@ -15,15 +16,41 @@ type GameManager struct {
 	selectedRow  int
 	selectedCol  int
 	pencilMode   bool
+
+	// Conflict State
+	conflictRow   int
+	conflictCol   int
+	conflictValue int
+
+	// Timer State
+	startTime  time.Time
+	endTime    time.Time
+	pausedTime time.Duration
+
+	// User Data
+	userData      *UserData
+	currentGameID string
 }
 
 // NewGameManager creates a new game manager with the specified generator
 func NewGameManager(generator engine.PuzzleGenerator) *GameManager {
+	// Load user data
+	ud, err := LoadUserData("user_data.json")
+	if err != nil {
+		fmt.Printf("Warning: Failed to load user data: %v\n", err)
+		ud = NewUserData()
+	}
+
 	return &GameManager{
-		generator:   generator,
-		selectedRow: -1, // No selection initially
-		selectedCol: -1,
-		pencilMode:  false,
+		generator:     generator,
+		selectedRow:   -1,
+		selectedCol:   -1,
+		pencilMode:    false,
+		conflictRow:   -1,
+		conflictCol:   -1,
+		conflictValue: 0,
+		startTime:     time.Now(),
+		userData:      ud,
 	}
 }
 
@@ -48,6 +75,15 @@ func (gm *GameManager) NewGame(difficulty engine.DifficultyLevel) error {
 	gm.selectedRow = -1
 	gm.selectedCol = -1
 	gm.pencilMode = false
+	gm.ResetConflict()
+
+	// Reset Timer
+	gm.startTime = time.Now()
+	gm.endTime = time.Time{} // Reset end time
+	gm.pausedTime = 0
+
+	// Generate new Game ID
+	gm.currentGameID = fmt.Sprintf("%d", time.Now().UnixNano())
 
 	return nil
 }
@@ -65,8 +101,38 @@ func (gm *GameManager) RestartGame() error {
 	gm.selectedRow = -1
 	gm.selectedCol = -1
 	gm.pencilMode = false
+	gm.ResetConflict()
+
+	// Reset Timer
+	gm.startTime = time.Now()
+	gm.endTime = time.Time{} // Reset end time
+	gm.pausedTime = 0
+
+	// Generate new Game ID
+	gm.currentGameID = fmt.Sprintf("%d", time.Now().UnixNano())
 
 	return nil
+}
+
+// ... (existing methods) ...
+
+// ... (existing methods) ...
+
+// ... (existing methods) ...
+
+// ResetConflict clears the conflict state
+func (gm *GameManager) ResetConflict() {
+	gm.conflictRow = -1
+	gm.conflictCol = -1
+	gm.conflictValue = 0
+}
+
+// GetConflictInfo returns the current conflict state
+func (gm *GameManager) GetConflictInfo() (row, col, val int, hasConflict bool) {
+	if gm.conflictRow == -1 {
+		return 0, 0, 0, false
+	}
+	return gm.conflictRow, gm.conflictCol, gm.conflictValue, true
 }
 
 // SelectCell sets the currently selected cell
@@ -128,24 +194,59 @@ func (gm *GameManager) InputNumber(row, col, val int) error {
 		return fmt.Errorf("cannot modify given cell at [%d][%d]", row, col)
 	}
 
+	// Check if already solved (don't allow moves if game is over)
+	if !gm.endTime.IsZero() {
+		return nil
+	}
+
+	// LOCKOUT LOGIC: Check if there is an active conflict
+	if gm.conflictRow != -1 {
+		// If there is a conflict, user MUST interact with the conflicting cell
+		if row != gm.conflictRow || col != gm.conflictCol {
+			return fmt.Errorf("must resolve conflict at [%d][%d] first", gm.conflictRow+1, gm.conflictCol+1)
+		}
+		// If interacting with the conflicting cell, proceed to validation below
+	}
+
 	if gm.pencilMode {
-		// Add pencil note
+		// Pencil mode is allowed even during conflict?
+		// User said "erase it before fill other numbers".
+		// Let's assume pencil marks are fine or blocked?
+		// Safest is to BLOCK pencil marks on OTHER cells too.
+		if gm.conflictRow != -1 && (row != gm.conflictRow || col != gm.conflictCol) {
+			return fmt.Errorf("must resolve conflict at [%d][%d] first", gm.conflictRow+1, gm.conflictCol+1)
+		}
 		return gm.currentBoard.AddCandidate(row, col, val)
 	} else {
 		// Place number
-		// First check if it's a valid move
-		if !gm.currentBoard.IsValidMove(row, col, val) {
-			// Still allow the move but it will create conflicts
-			// The GUI can highlight conflicts using FindConflicts()
-		}
 
-		// Set the value
-		if err := gm.currentBoard.SetValue(row, col, val); err != nil {
-			return err
-		}
+		// Check validity
+		isValid := gm.currentBoard.IsValidMove(row, col, val)
 
-		// Auto-remove this candidate from peer cells
-		gm.currentBoard.RemoveCandidateFromPeers(row, col, val)
+		if isValid {
+			// Valid move: Set value and clear any conflict state
+			if err := gm.currentBoard.SetValue(row, col, val); err != nil {
+				return err
+			}
+			gm.currentBoard.RemoveCandidateFromPeers(row, col, val)
+			gm.ResetConflict() // Conflict resolved
+
+			// Check for win condition
+			if gm.currentBoard.IsSolved() && gm.endTime.IsZero() {
+				gm.endTime = time.Now()
+
+				// Auto-save on win
+				if err := gm.SaveCurrentGame(); err != nil {
+					fmt.Printf("Error auto-saving game: %v\n", err)
+				}
+			}
+		} else {
+			// Invalid move: Do NOT set value on board. Set Transient Conflict.
+			gm.conflictRow = row
+			gm.conflictCol = col
+			gm.conflictValue = val
+			// Note: We do NOT call SetValue, so board data remains clean.
+		}
 
 		return nil
 	}
@@ -166,7 +267,18 @@ func (gm *GameManager) ClearCell(row, col int) error {
 		return fmt.Errorf("cannot clear given cell at [%d][%d]", row, col)
 	}
 
-	// Clear the value
+	// LOCKOUT LOGIC
+	if gm.conflictRow != -1 {
+		if row == gm.conflictRow && col == gm.conflictCol {
+			// User is clearing the conflicting cell -> Resolve conflict
+			gm.ResetConflict()
+			return nil // Done, nothing on board to clear (since it wasn't saved)
+		} else {
+			return fmt.Errorf("must resolve conflict at [%d][%d] first", gm.conflictRow+1, gm.conflictCol+1)
+		}
+	}
+
+	// Normal Clear
 	if err := gm.currentBoard.ClearCell(row, col); err != nil {
 		return err
 	}
@@ -246,6 +358,174 @@ func (gm *GameManager) GetMistakes() int {
 
 // GetElapsedTime returns the formatted elapsed time string
 func (gm *GameManager) GetElapsedTime() string {
-	// TODO: Implement actual timer
-	return "00:00"
+	if gm.currentBoard == nil {
+		return "00:00"
+	}
+
+	var elapsed time.Duration
+	if !gm.endTime.IsZero() {
+		elapsed = gm.endTime.Sub(gm.startTime)
+	} else {
+		elapsed = time.Since(gm.startTime)
+	}
+
+	// Format as MM:SS
+	minutes := int(elapsed.Minutes())
+	seconds := int(elapsed.Seconds()) % 60
+	return fmt.Sprintf("%02d:%02d", minutes, seconds)
+}
+
+// GetHistory returns the list of puzzle records
+func (gm *GameManager) GetHistory() []PuzzleRecord {
+	if gm.userData == nil {
+		return nil
+	}
+	gm.userData.mu.RLock()
+	defer gm.userData.mu.RUnlock()
+
+	// Return a copy to avoid race conditions
+	history := make([]PuzzleRecord, len(gm.userData.History))
+	copy(history, gm.userData.History)
+	return history
+}
+
+// SaveCurrentGame saves the current game state (even if not finished)
+func (gm *GameManager) SaveCurrentGame() error {
+	if gm.currentBoard == nil {
+		return fmt.Errorf("no game in progress")
+	}
+	if gm.currentGameID == "" {
+		return fmt.Errorf("no current game ID to save")
+	}
+
+	// Calculate Time Elapsed
+	var elapsed time.Duration
+	if !gm.endTime.IsZero() {
+		elapsed = gm.endTime.Sub(gm.startTime)
+	} else {
+		elapsed = time.Since(gm.startTime)
+	}
+
+	record := PuzzleRecord{
+		ID:          gm.currentGameID,
+		Predefined:  gm.initialBoard.String(),
+		FinalState:  gm.currentBoard.String(),
+		IsSolved:    gm.currentBoard.IsSolved(),
+		TimeElapsed: elapsed,
+		PlayedAt:    time.Now(),
+		Difficulty:  gm.difficulty,
+		Mistakes:    0, // TODO: Track mistakes
+	}
+
+	// Use Upsert to handle both new and existing records + stats
+	gm.userData.UpsertPuzzleRecord(record)
+
+	return gm.userData.Save("user_data.json")
+}
+
+// LoadGame loads a game from a history record
+func (gm *GameManager) LoadGame(id string) error {
+	var record *PuzzleRecord
+
+	gm.userData.mu.RLock()
+	for i := range gm.userData.History {
+		if gm.userData.History[i].ID == id {
+			record = &gm.userData.History[i]
+			break
+		}
+	}
+	gm.userData.mu.RUnlock()
+
+	if record == nil {
+		return fmt.Errorf("record not found: %s", id)
+	}
+
+	// Reconstruct Boards
+	initial, err := engine.ParseBoard(record.Predefined)
+	if err != nil {
+		return fmt.Errorf("failed to parse initial board: %w", err)
+	}
+
+	current, err := engine.ParseBoard(record.FinalState)
+	if err != nil {
+		return fmt.Errorf("failed to parse current board: %w", err)
+	}
+
+	// Restore 'Given' status based on initial board
+	// Any non-zero value in initial board is a Given
+	for r := 0; r < 9; r++ {
+		for c := 0; c < 9; c++ {
+			val, _ := initial.GetValue(r, c)
+			if val != 0 {
+				initial.Cells[r][c].Given = true
+				current.Cells[r][c].Given = true
+			}
+		}
+	}
+
+	gm.initialBoard = initial
+	gm.currentBoard = current
+	gm.difficulty = record.Difficulty
+	gm.currentGameID = record.ID // Set current ID to loaded ID
+
+	// Restore Timer
+	// We want to resume from where we left off.
+	// startTime = Now - TimeElapsed
+	gm.startTime = time.Now().Add(-record.TimeElapsed)
+
+	if record.IsSolved {
+		gm.endTime = time.Now() // Mark as ended
+	} else {
+		gm.endTime = time.Time{} // Ensure running
+	}
+
+	gm.pausedTime = 0
+	gm.ResetConflict()
+
+	return nil
+}
+
+// GetUserLevel returns the user's current level
+func (gm *GameManager) GetUserLevel() int {
+	if gm.userData == nil {
+		return 1
+	}
+	gm.userData.mu.RLock()
+	defer gm.userData.mu.RUnlock()
+	return gm.userData.Stats.Level
+}
+
+// GetGameState returns the current game state for the UI
+func (gm *GameManager) GetGameState() GameState {
+	board := engine.SudokuBoard{}
+	if gm.currentBoard != nil {
+		// Clone the board to avoid modifying the actual game state
+		board = *gm.currentBoard.Clone()
+
+		// Inject transient conflict if any
+		if gm.conflictRow != -1 {
+			board.Cells[gm.conflictRow][gm.conflictCol].Value = gm.conflictValue
+		}
+
+		// Check for conflicts and mark invalid cells
+		// We use the cloned board's FindConflicts method to include the transient value
+		conflicts := board.FindConflicts()
+		for _, coord := range conflicts {
+			board.Cells[coord.Row][coord.Col].IsInvalid = true
+		}
+	}
+
+	selected := gm.selectedRow != -1 && gm.selectedCol != -1
+
+	return GameState{
+		Board:       board,
+		SelectedRow: gm.selectedRow,
+		SelectedCol: gm.selectedCol,
+		IsSelected:  selected,
+		PencilMode:  gm.pencilMode,
+		Mistakes:    0, // TODO: Implement mistake tracking if needed
+		TimeElapsed: gm.GetElapsedTime(),
+		Difficulty:  gm.difficulty.String(),
+		IsSolved:    gm.currentBoard != nil && gm.currentBoard.IsSolved(),
+	}
 }

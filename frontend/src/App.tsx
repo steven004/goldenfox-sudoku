@@ -1,15 +1,18 @@
 import { useState, useEffect, useCallback } from 'react';
+import confetti from 'canvas-confetti';
 import logo from './assets/images/fox-sudoku.png';
 import bgImage from './assets/images/background.png';
 
 import { Board } from './components/Board';
 import { Controls } from './components/Controls';
 import { StatsPanel } from './components/StatsPanel';
+import { HistoryModal } from './components/HistoryModal';
 import { GameState } from './types';
-import { GetGameState, SelectCell, InputNumber, TogglePencilMode, NewGame } from '../wailsjs/go/main/App';
+import { GetGameState, SelectCell, InputNumber, TogglePencilMode, NewGame, ClearCell, SaveGame } from '../wailsjs/go/main/App';
 
 function App() {
     const [gameState, setGameState] = useState<GameState | null>(null);
+    const [isHistoryOpen, setIsHistoryOpen] = useState(false);
 
     const refreshState = useCallback(() => {
         GetGameState().then((state: any) => {
@@ -30,6 +33,36 @@ function App() {
 
         return () => clearInterval(interval);
     }, [refreshState]);
+
+    // Trigger fireworks when solved
+    useEffect(() => {
+        if (gameState?.isSolved) {
+            const duration = 2000;
+            const end = Date.now() + duration;
+
+            const frame = () => {
+                confetti({
+                    particleCount: 2,
+                    angle: 60,
+                    spread: 55,
+                    origin: { x: 0 },
+                    colors: ['#D68D38', '#FFD28F', '#FFFFFF']
+                });
+                confetti({
+                    particleCount: 2,
+                    angle: 120,
+                    spread: 55,
+                    origin: { x: 1 },
+                    colors: ['#D68D38', '#FFD28F', '#FFFFFF']
+                });
+
+                if (Date.now() < end) {
+                    requestAnimationFrame(frame);
+                }
+            };
+            frame();
+        }
+    }, [gameState?.isSolved]);
 
     const handleCellClick = async (row: number, col: number) => {
         try {
@@ -55,12 +88,23 @@ function App() {
                 case 'pencil':
                     await TogglePencilMode();
                     break;
+                case 'eraser': // Match the ID from Controls.tsx
+                    if (gameState?.isSolved) return;
+                    await ClearCell();
+                    break;
                 case 'new':
                     await NewGame("Easy"); // Default to Easy for now
                     break;
                 case 'restart':
                     // TODO: Implement Restart in backend binding if not already
                     await NewGame("Easy"); // Temporary
+                    break;
+                case 'history':
+                    setIsHistoryOpen(true);
+                    break;
+                case 'save':
+                    await SaveGame();
+                    // Optional: Show toast
                     break;
                 // Other actions...
             }
@@ -82,7 +126,9 @@ function App() {
             {/* 1. Top Zone: The Header */}
             <header className="h-20 flex items-center justify-center gap-4 shrink-0 pt-4">
                 <img src={logo} alt="Golden Fox Logo" className="h-12 w-auto object-contain drop-shadow-lg" />
-                <h1 className="text-3xl font-bold text-white tracking-wider drop-shadow-md font-display">Golden Fox Sudoku</h1>
+                <h1 className={`text-3xl font-bold tracking-wider drop-shadow-md font-display transition-all duration-500 ${gameState.isSolved ? 'text-[#FFD28F] scale-110' : 'text-white'}`}>
+                    {gameState.isSolved ? '✨ VICTORY! ✨' : 'Golden Fox Sudoku'}
+                </h1>
             </header>
 
             {/* 2. Middle Zone: The Main Stage */}
@@ -135,6 +181,15 @@ function App() {
                     })()}
                 />
             </div>
+
+            <HistoryModal
+                isOpen={isHistoryOpen}
+                onClose={() => setIsHistoryOpen(false)}
+                onLoadGame={() => {
+                    refreshState();
+                    // Maybe show a toast?
+                }}
+            />
         </div>
     );
 }

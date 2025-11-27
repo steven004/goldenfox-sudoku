@@ -41,8 +41,30 @@ func NewApp() *App {
 // so we can call the runtime methods
 func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
-	// Start a default game
-	a.gameManager.NewGame(engine.Beginner)
+
+	// Determine difficulty based on user level
+	level := a.gameManager.GetUserLevel()
+	var diff engine.DifficultyLevel
+
+	switch {
+	case level < 5:
+		diff = engine.Beginner
+	case level < 10:
+		diff = engine.Easy
+	case level < 20:
+		diff = engine.Medium
+	case level < 50:
+		diff = engine.Hard
+	default:
+		diff = engine.Expert
+	}
+
+	fmt.Printf("Starting initial game for User Level %d (Difficulty: %s)\n", level, diff)
+
+	// Start a new game using the standard logic (generates ID, etc.)
+	if err := a.gameManager.NewGame(diff); err != nil {
+		fmt.Printf("Error starting initial game: %v\n", err)
+	}
 }
 
 // --- Exposed Methods ---
@@ -91,6 +113,16 @@ func (a *App) InputNumber(val int) error {
 	return a.gameManager.InputNumber(row, col, val)
 }
 
+// LoadGame loads a specific game from history
+func (a *App) LoadGame(id string) error {
+	return a.gameManager.LoadGame(id)
+}
+
+// SaveGame saves the current game progress
+func (a *App) SaveGame() error {
+	return a.gameManager.SaveCurrentGame()
+}
+
 // TogglePencilMode toggles the pencil mode
 func (a *App) TogglePencilMode() bool {
 	a.gameManager.TogglePencilMode()
@@ -98,36 +130,25 @@ func (a *App) TogglePencilMode() bool {
 }
 
 // GetGameState returns a comprehensive state object for the UI
-type GameState struct {
-	Board       engine.SudokuBoard `json:"board"`
-	SelectedRow int                `json:"selectedRow"`
-	SelectedCol int                `json:"selectedCol"`
-	IsSelected  bool               `json:"isSelected"`
-	PencilMode  bool               `json:"pencilMode"`
-	Mistakes    int                `json:"mistakes"`
-	TimeElapsed string             `json:"timeElapsed"` // formatted string
-	Difficulty  string             `json:"difficulty"`
+func (a *App) GetGameState() game.GameState {
+	return a.gameManager.GetGameState()
 }
 
-func (a *App) GetGameState() GameState {
+// ClearCell clears the selected cell
+func (a *App) ClearCell() error {
 	row, col, selected := a.gameManager.GetSelectedCell()
-	board := engine.SudokuBoard{}
-	if b := a.gameManager.GetBoard(); b != nil {
-		board = *b
+	if !selected {
+		return fmt.Errorf("no cell selected")
 	}
-	return GameState{
-		Board:       board,
-		SelectedRow: row,
-		SelectedCol: col,
-		IsSelected:  selected,
-		PencilMode:  a.gameManager.IsPencilMode(),
-		Mistakes:    a.gameManager.GetMistakes(),
-		TimeElapsed: a.gameManager.GetElapsedTime(), // Assuming this returns string or duration
-		Difficulty:  a.gameManager.GetDifficulty().String(),
-	}
+	return a.gameManager.ClearCell(row, col)
 }
 
 // Greet returns a greeting for the given name
 func (a *App) Greet(name string) string {
 	return fmt.Sprintf("Hello %s, It's show time!", name)
+}
+
+// GetHistory returns the user's puzzle history
+func (a *App) GetHistory() []game.PuzzleRecord {
+	return a.gameManager.GetHistory()
 }

@@ -2,6 +2,7 @@ export interface Cell {
     value: number;
     given: boolean;
     candidates: Record<number, boolean>;
+    isInvalid?: boolean;
 }
 
 export interface SudokuBoard {
@@ -17,4 +18,5 @@ export interface GameState {
     mistakes: number;
     timeElapsed: string;
     difficulty: string;
+    isSolved: boolean;
 }

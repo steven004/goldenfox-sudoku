@@ -126,6 +126,30 @@ Implement save/load functionality:
 - `GameState` struct for serialization (initial board, current board, notes, metadata)
 - Save format matches design specification
 
+### User Data Persistence
+- Create `UserData` struct to hold stats and history.
+- Implement JSON saving/loading.
+- Update `GameManager` to track and save progress.
+
+### History Viewer & Game Loading
+- **Backend**:
+    - Add `GetHistory` to `GameManager`.
+    - Add `LoadGame(id)` to `GameManager`.
+    - Add `ParseBoard(string)` to `engine` to reconstruct boards.
+- **Frontend**:
+    - Create `HistoryModal` component.
+    - Implement tabs for "Uncompleted" and "Finished".
+    - Add "Load" button to controls.
+
+### Save Functionality
+- **Backend**:
+    - Add `currentGameID` to `GameManager`.
+    - Update `SaveCurrentGame` to handle updates vs new records.
+    - Expose `SaveGame` in `App.go`.
+- **Frontend**:
+    - Connect "Save" button in `App.tsx`.
+    - Ensure `Board` component respects `given` flag for styling (already implemented, verify).
+
 #### [NEW] [persistence/user_stats.go](file:///Users/xin-force/.gemini/antigravity/projects/sudoku/persistence/user_stats.go)
 Implement user statistics tracking:
 - `UserStats` struct with games played, average times per difficulty, user level

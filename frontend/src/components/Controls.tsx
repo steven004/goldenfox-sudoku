@@ -1,5 +1,5 @@
 import React from 'react';
-import { Edit3, Eraser, RotateCcw, RefreshCw, Plus, Save, Download } from 'lucide-react';
+import { Edit3, Eraser, RotateCcw, RefreshCw, Plus, Save, History as HistoryIcon } from 'lucide-react';
 
 interface ControlsProps {
     onNumberClick: (num: number) => void;
@@ -65,7 +65,7 @@ export const Controls: React.FC<ControlsProps> = ({ onNumberClick, onActionClick
                     { id: 'restart', label: 'Restart', icon: RefreshCw },
                     { id: 'new', label: 'New', icon: Plus },
                     { id: 'save', label: 'Save', icon: Save },
-                    { id: 'load', label: 'Load', icon: Download },
+                    { id: 'history', label: 'History', icon: HistoryIcon },
                 ].map(action => {
                     const Icon = action.icon;
                     const isActive = action.active;

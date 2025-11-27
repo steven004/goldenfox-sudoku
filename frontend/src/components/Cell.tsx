@@ -29,14 +29,21 @@ export const CellComponent: React.FC<CellProps> = ({
     } else if (isSameValue && cell.value !== 0) {
         bgColor = 'bg-[#FFEAA7]'; // Same-Number Highlight
     } else if (isPeer) {
-        // Optional: Peer highlight if desired, or keep it subtle
-        // bgColor = 'bg-[#FFF8E1]';
+        // Peer highlight (Row/Col/Block)
+        bgColor = 'bg-[#FFE0B2]';
     }
 
     // Text color (Dark Charcoal for numbers, White for selected)
     // Differentiate font weight/style: Bold for Given, Light + Italic for User Input
+    // Conflict Check: Red if invalid
     const fontStyle = cell.given ? 'font-bold' : 'font-light italic';
-    const textColor = isSelected ? `text-white ${fontStyle}` : `text-[#2D3436] ${fontStyle}`;
+    let colorClass = isSelected ? 'text-white' : 'text-[#2D3436]';
+
+    if (cell.isInvalid && !cell.given) {
+        colorClass = isSelected ? 'text-red-200' : 'text-red-500';
+    }
+
+    const textColor = `${colorClass} ${fontStyle}`;
 
     // Grid Lines Logic (Strict Specs)
     let borderClasses = '';
