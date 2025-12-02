@@ -42,6 +42,9 @@ func NewApp() *App {
 func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
 
+	// Enforce 1:1 Aspect Ratio (macOS only)
+	SetWindowAspectRatio()
+
 	// Determine difficulty based on user level
 	level := a.gameManager.GetUserLevel()
 	var diff engine.DifficultyLevel
@@ -141,6 +144,11 @@ func (a *App) ClearCell() error {
 		return fmt.Errorf("no cell selected")
 	}
 	return a.gameManager.ClearCell(row, col)
+}
+
+// Undo reverts the last move
+func (a *App) Undo() error {
+	return a.gameManager.Undo()
 }
 
 // Greet returns a greeting for the given name

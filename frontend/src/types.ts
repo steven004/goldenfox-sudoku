@@ -16,7 +16,17 @@ export interface GameState {
     isSelected: boolean;
     pencilMode: boolean;
     mistakes: number;
+    eraseCount: number;
+    undoCount: number;
     timeElapsed: string;
     difficulty: string;
     isSolved: boolean;
+    userLevel: number;
+    gamesPlayed: number;
+    winRate: number;
+    pendingGames: number;
+    averageTime: string;
+    currentDifficultyCount: number;
+    winsForNextLevel: number;
+    remainingCells: number;
 }

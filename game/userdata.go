@@ -25,13 +25,15 @@ type PuzzleRecord struct {
 
 // UserStats holds aggregated statistics for the user
 type UserStats struct {
-	Level        int                                `json:"level"` // User's experience level
-	JoinTime     time.Time                          `json:"join_time"`
-	TotalSolved  int                                `json:"total_solved"`
-	BestTimes    map[engine.DifficultyLevel]float64 `json:"best_times"`    // In seconds
-	AverageTimes map[engine.DifficultyLevel]float64 `json:"average_times"` // In seconds
-	TotalTimes   map[engine.DifficultyLevel]float64 `json:"total_times"`   // In seconds (helper for average)
-	SolvedCounts map[engine.DifficultyLevel]int     `json:"solved_counts"` // Helper for average
+	Level             int                                `json:"level"` // User's experience level (1-6)
+	ConsecutiveWins   int                                `json:"consecutive_wins"`
+	ConsecutiveLosses int                                `json:"consecutive_losses"`
+	JoinTime          time.Time                          `json:"join_time"`
+	TotalSolved       int                                `json:"total_solved"`
+	BestTimes         map[engine.DifficultyLevel]float64 `json:"best_times"`    // In seconds
+	AverageTimes      map[engine.DifficultyLevel]float64 `json:"average_times"` // In seconds
+	TotalTimes        map[engine.DifficultyLevel]float64 `json:"total_times"`   // In seconds (helper for average)
+	SolvedCounts      map[engine.DifficultyLevel]int     `json:"solved_counts"` // Helper for average
 }
 
 // UserData is the root structure for user persistence
@@ -45,12 +47,14 @@ type UserData struct {
 func NewUserData() *UserData {
 	return &UserData{
 		Stats: UserStats{
-			Level:        1,
-			JoinTime:     time.Now(),
-			BestTimes:    make(map[engine.DifficultyLevel]float64),
-			AverageTimes: make(map[engine.DifficultyLevel]float64),
-			TotalTimes:   make(map[engine.DifficultyLevel]float64),
-			SolvedCounts: make(map[engine.DifficultyLevel]int),
+			Level:             1,
+			ConsecutiveWins:   0,
+			ConsecutiveLosses: 0,
+			JoinTime:          time.Now(),
+			BestTimes:         make(map[engine.DifficultyLevel]float64),
+			AverageTimes:      make(map[engine.DifficultyLevel]float64),
+			TotalTimes:        make(map[engine.DifficultyLevel]float64),
+			SolvedCounts:      make(map[engine.DifficultyLevel]int),
 		},
 		History: make([]PuzzleRecord, 0),
 	}
@@ -196,8 +200,73 @@ func (ud *UserData) updateStats(record PuzzleRecord) {
 		ud.Stats.BestTimes[record.Difficulty] = seconds
 	}
 
-	// Simple Level Up Logic
-	if ud.Stats.TotalSolved%5 == 0 {
-		ud.Stats.Level++
+	// Level Up Logic
+	// Win 5 consecutive games -> Level Up
+	ud.Stats.ConsecutiveWins++
+	ud.Stats.ConsecutiveLosses = 0 // Reset losses on win
+
+	if ud.Stats.ConsecutiveWins >= 5 {
+		if ud.Stats.Level < 6 { // Max Level 6 (FoxGod)
+			ud.Stats.Level++
+			ud.Stats.ConsecutiveWins = 0 // Reset after promotion
+		}
 	}
+}
+
+// RecordLoss records a failed or abandoned game
+func (ud *UserData) RecordLoss() {
+	ud.mu.Lock()
+	defer ud.mu.Unlock()
+
+	ud.Stats.ConsecutiveLosses++
+	ud.Stats.ConsecutiveWins = 0 // Reset wins on loss
+
+	// Level Down Logic
+	// Fail 3 consecutive games -> Level Down
+	if ud.Stats.ConsecutiveLosses >= 3 {
+		if ud.Stats.Level > 1 { // Min Level 1 (Beginner)
+			ud.Stats.Level--
+			ud.Stats.ConsecutiveLosses = 0 // Reset after demotion
+		}
+	}
+}
+
+// GetPendingGamesCount returns the number of unfinished games in history
+func (ud *UserData) GetPendingGamesCount() int {
+	ud.mu.RLock()
+	defer ud.mu.RUnlock()
+
+	count := 0
+	for _, record := range ud.History {
+		if !record.IsSolved {
+			count++
+		}
+	}
+	return count
+}
+
+// GetWinRate returns the percentage of games won
+func (ud *UserData) GetWinRate() float64 {
+	ud.mu.RLock()
+	defer ud.mu.RUnlock()
+
+	total := len(ud.History)
+	if total == 0 {
+		return 0.0
+	}
+	return (float64(ud.Stats.TotalSolved) / float64(total)) * 100
+}
+
+// GetGamesAtDifficulty returns the number of games played (started) at a specific difficulty
+func (ud *UserData) GetGamesAtDifficulty(diff engine.DifficultyLevel) int {
+	ud.mu.RLock()
+	defer ud.mu.RUnlock()
+
+	count := 0
+	for _, record := range ud.History {
+		if record.Difficulty == diff {
+			count++
+		}
+	}
+	return count
 }

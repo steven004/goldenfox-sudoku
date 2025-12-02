@@ -115,19 +115,19 @@ func (g *PreloadedGenerator) Generate(difficulty engine.DifficultyLevel) (*engin
 	switch difficulty {
 	case engine.Beginner:
 		poolLevel = engine.Beginner
-		extraClues = 10
+		extraClues = 15
 	case engine.Easy:
 		poolLevel = engine.Easy
-		extraClues = 8
+		extraClues = 12
 	case engine.Medium:
 		poolLevel = engine.Medium
-		extraClues = 6
+		extraClues = 9
 	case engine.Hard:
 		poolLevel = engine.Hard
-		extraClues = 4
+		extraClues = 6
 	case engine.Expert:
 		poolLevel = engine.Expert
-		extraClues = 2
+		extraClues = 3
 	case engine.FoxGod:
 		poolLevel = engine.Expert // FoxGod uses Expert pool with no help
 		extraClues = 0

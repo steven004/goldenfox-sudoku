@@ -1,5 +1,5 @@
 import React from 'react';
-import { Edit3, Eraser, RotateCcw, RefreshCw, Plus, Save, History as HistoryIcon } from 'lucide-react';
+import { Edit3, Eraser, RotateCcw, RefreshCw, Plus, History as HistoryIcon } from 'lucide-react';
 
 interface ControlsProps {
     onNumberClick: (num: number) => void;
@@ -23,18 +23,19 @@ export const Controls: React.FC<ControlsProps> = ({ onNumberClick, onActionClick
                     let inlineStyle = {};
 
                     if (isSelected) {
-                        // 1. Selected State (Burning Sun)
-                        // Solid Radial Gradient, White Border, Dark Text, Strong Glow
-                        buttonStyle = 'text-[#1a1a1a] border border-white shadow-[0_0_15px_#FF9F43] scale-110 z-10';
+                        // 1. Selected State (Glowing Sun Stone)
+                        // Bright radial gradient, white border, dark text, strong outer glow
+                        buttonStyle = 'text-[#1a1a1a] border-2 border-white shadow-[0_0_20px_#FF9F43,inset_0_2px_4px_rgba(255,255,255,0.5)] scale-110 z-10';
                         inlineStyle = { background: 'radial-gradient(circle at 30% 30%, #FFD28F, #FF9F43, #D68D38)' };
                     } else if (isCompleted) {
-                        // 2. Completed State (Burnt Out)
-                        // Transparent bg, Orange border (circle), dark grey text
-                        buttonStyle = 'text-[#444] bg-transparent border border-[rgba(214,141,56,0.5)] cursor-default';
+                        // 2. Completed State (Dim Stone)
+                        // Flat, dark, low contrast
+                        buttonStyle = 'text-[#666] bg-[#1a1a1a] border border-[#333] shadow-[inset_0_2px_4px_rgba(0,0,0,0.5)] cursor-default';
                     } else {
-                        // 3. Normal State (Amber Glass)
-                        // Subtle Orange tint bg, visible Orange ring, Pale Gold text
-                        buttonStyle = 'text-[#FFD28F] bg-[rgba(214,141,56,0.15)] border border-[rgba(214,141,56,0.5)] hover:bg-[rgba(214,141,56,0.25)] hover:text-white shadow-[0_2px_5px_rgba(0,0,0,0.3)]';
+                        // 3. Normal State (Amber Glass Stone)
+                        // Convex look, deep amber, glossy highlight
+                        buttonStyle = 'text-[#FFD28F] border border-[#D68D38]/50 shadow-[inset_0_2px_4px_rgba(255,255,255,0.2),inset_0_-2px_4px_rgba(0,0,0,0.4),0_4px_8px_rgba(0,0,0,0.4)] hover:scale-105 active:scale-95 transition-transform';
+                        inlineStyle = { background: 'radial-gradient(circle at 30% 30%, rgba(214,141,56,0.3), rgba(214,141,56,0.1))' };
                     }
 
                     return (
@@ -42,13 +43,13 @@ export const Controls: React.FC<ControlsProps> = ({ onNumberClick, onActionClick
                             key={num}
                             className={`
                                 relative flex items-center justify-center
-                                w-14 h-14 rounded-full transition-all duration-300
+                                w-14 h-14 rounded-full transition-all duration-200
                                 text-2xl font-bold
                                 ${buttonStyle}
                             `}
                             style={inlineStyle}
                             onClick={() => onNumberClick(num)}
-                            disabled={isCompleted && !isSelected} // Optional: disable clicking if completed? User didn't specify, but implies "ignores it". Keeping clickable for now unless specified otherwise, but visual style implies disabled.
+                            disabled={isCompleted && !isSelected}
                         >
                             {num}
                         </button>
@@ -56,7 +57,7 @@ export const Controls: React.FC<ControlsProps> = ({ onNumberClick, onActionClick
                 })}
             </div>
 
-            {/* Row 2: Tool Actions (Outline Capsules) */}
+            {/* Row 2: Tool Actions (Tactile Buttons) */}
             <div className="flex justify-between gap-2 px-2">
                 {[
                     { id: 'pencil', label: 'Pencil', icon: Edit3, active: pencilMode },
@@ -64,7 +65,6 @@ export const Controls: React.FC<ControlsProps> = ({ onNumberClick, onActionClick
                     { id: 'undo', label: 'Undo', icon: RotateCcw },
                     { id: 'restart', label: 'Restart', icon: RefreshCw },
                     { id: 'new', label: 'New', icon: Plus },
-                    { id: 'save', label: 'Save', icon: Save },
                     { id: 'history', label: 'History', icon: HistoryIcon },
                 ].map(action => {
                     const Icon = action.icon;
@@ -75,17 +75,17 @@ export const Controls: React.FC<ControlsProps> = ({ onNumberClick, onActionClick
                             key={action.id}
                             className={`
                                 flex flex-col items-center justify-center
-                                py-2 px-3 rounded-2xl border transition-all duration-300
-                                min-w-[4.5rem]
+                                py-2 px-3 rounded-xl border transition-all duration-100
+                                min-w-[4.5rem] relative overflow-hidden
                                 ${isActive
-                                    ? 'bg-[#D68D38] border-[#D68D38] text-[#121418]'
-                                    : 'bg-transparent border-[#D68D38] text-[#D68D38] hover:bg-[#D68D38]/10'
+                                    ? 'bg-gradient-to-b from-[#D68D38] to-[#B57025] border-[#B57025] text-[#121418] shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)] translate-y-[1px]'
+                                    : 'bg-gradient-to-b from-[#2a303c] to-[#1E222D] border-[#3E4552] text-[#D68D38] shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_4px_0_#151820,0_5px_10px_rgba(0,0,0,0.5)] hover:translate-y-[1px] hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_3px_0_#151820,0_4px_8px_rgba(0,0,0,0.5)] active:translate-y-[4px] active:shadow-[inset_0_2px_4px_rgba(0,0,0,0.4)]'
                                 }
                             `}
                             onClick={() => onActionClick(action.id)}
                         >
-                            <Icon size={24} strokeWidth={2} />
-                            <span className="text-[10px] font-bold mt-1 uppercase tracking-wider">{action.label}</span>
+                            <Icon size={24} strokeWidth={2} className="drop-shadow-sm" />
+                            <span className="text-[10px] font-bold mt-1 uppercase tracking-wider drop-shadow-sm">{action.label}</span>
                         </button>
                     );
                 })}

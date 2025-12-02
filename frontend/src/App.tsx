@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
 import confetti from 'canvas-confetti';
-import logo from './assets/images/fox-sudoku.png';
 import bgImage from './assets/images/background.png';
 
 import { Board } from './components/Board';
@@ -8,7 +7,8 @@ import { Controls } from './components/Controls';
 import { StatsPanel } from './components/StatsPanel';
 import { HistoryModal } from './components/HistoryModal';
 import { GameState } from './types';
-import { GetGameState, SelectCell, InputNumber, TogglePencilMode, NewGame, ClearCell, SaveGame } from '../wailsjs/go/main/App';
+import LayoutConfig from './config.json';
+import { GetGameState, SelectCell, InputNumber, TogglePencilMode, NewGame, ClearCell } from '../wailsjs/go/main/App';
 
 function App() {
     const [gameState, setGameState] = useState<GameState | null>(null);
@@ -76,7 +76,10 @@ function App() {
     const handleNumberClick = async (num: number) => {
         try {
             await InputNumber(num);
+            // Immediate refresh
             refreshState();
+            // Follow-up refresh to ensure state propagation (fixes lag)
+            setTimeout(refreshState, 50);
         } catch (err) {
             console.error(err);
         }
@@ -102,10 +105,6 @@ function App() {
                 case 'history':
                     setIsHistoryOpen(true);
                     break;
-                case 'save':
-                    await SaveGame();
-                    // Optional: Show toast
-                    break;
                 // Other actions...
             }
             refreshState();
@@ -119,67 +118,131 @@ function App() {
     }
 
     return (
+
         <div
-            className="flex flex-col h-screen w-screen overflow-hidden relative bg-cover bg-center bg-no-repeat"
-            style={{ backgroundImage: `url(${bgImage})` }}
+            className="flex flex-col h-screen w-screen overflow-hidden relative bg-center bg-no-repeat items-center justify-center"
+            style={{
+                backgroundImage: `url(${bgImage})`,
+                backgroundSize: '100% 100%',
+                // @ts-ignore
+                '--app-side-length': `${LayoutConfig.APP_SIDE_LENGTH}px`,
+                '--scale-base': LayoutConfig.SCALE_BASE,
+                '--p-margin-top': LayoutConfig.MARGIN_TOP,
+                '--p-margin-left': LayoutConfig.MARGIN_LEFT,
+                '--p-header-height': LayoutConfig.HEADER_HEIGHT,
+                '--p-board-size': LayoutConfig.BOARD_SIZE,
+                '--p-info-bar-width': LayoutConfig.INFO_BAR_WIDTH,
+                '--p-info-bar-height': LayoutConfig.INFO_BAR_HEIGHT,
+                '--p-control-bar-height': LayoutConfig.CONTROL_BAR_HEIGHT,
+                '--p-control-bar-width': LayoutConfig.CONTROL_BAR_WIDTH,
+                '--p-gap-board-info': LayoutConfig.GAP_BOARD_INFO,
+                '--p-gap-board-control': LayoutConfig.GAP_BOARD_CONTROL,
+            }}
         >
-            {/* 1. Top Zone: The Header */}
-            <header className="h-20 flex items-center justify-center gap-4 shrink-0 pt-4">
-                <img src={logo} alt="Golden Fox Logo" className="h-12 w-auto object-contain drop-shadow-lg" />
-                <h1 className={`text-3xl font-bold tracking-wider drop-shadow-md font-display transition-all duration-500 ${gameState.isSolved ? 'text-[#FFD28F] scale-110' : 'text-white'}`}>
-                    {gameState.isSolved ? '✨ VICTORY! ✨' : 'Golden Fox Sudoku'}
-                </h1>
-            </header>
+            {/* Main Container with Global Margins */}
+            <div
+                className="flex flex-col w-full h-full"
+                style={{
+                    paddingTop: 'calc(var(--app-side-length) * (var(--p-margin-top) / var(--scale-base)))',
+                    paddingLeft: 'calc(var(--app-side-length) * (var(--p-margin-left) / var(--scale-base)))',
+                }}
+            >
+                {/* 1. Header Zone */}
+                <div
+                    style={{
+                        height: 'calc(var(--app-side-length) * (var(--p-header-height) / var(--scale-base)))',
+                        width: '100%'
+                    }}
+                    className="shrink-0 flex items-center justify-center"
+                >
+                    {gameState?.isSolved && (
+                        <div className="text-6xl font-black text-transparent bg-clip-text bg-gradient-to-b from-[#FFD28F] to-[#D68D38] drop-shadow-[0_2px_10px_rgba(214,141,56,0.5)] animate-in fade-in zoom-in duration-500 tracking-widest">
+                            VICTORY!
+                        </div>
+                    )}
+                </div>
 
-            {/* 2. Middle Zone: The Main Stage */}
-            <main className="flex-1 flex flex-row w-full max-w-[1600px] mx-auto p-4 gap-8 min-h-0">
+                {/* 2. Main Body (Flex Row) */}
+                <div className="flex flex-row w-full h-full">
+                    {/* Left Column: Board + Gap + Controls */}
+                    <div
+                        className="flex flex-col"
+                        style={{
+                            width: 'calc(var(--app-side-length) * (var(--p-board-size) / var(--scale-base)))',
+                            marginRight: 'calc(var(--app-side-length) * (var(--p-gap-board-info) / var(--scale-base)))'
+                        }}
+                    >
+                        {/* Board */}
+                        <div
+                            style={{
+                                width: 'calc(var(--app-side-length) * (var(--p-board-size) / var(--scale-base)))',
+                                height: 'calc(var(--app-side-length) * (var(--p-board-size) / var(--scale-base)))',
+                                marginBottom: 'calc(var(--app-side-length) * (var(--p-gap-board-control) / var(--scale-base)))'
+                            }}
+                        >
+                            <Board
+                                board={gameState.board}
+                                selectedRow={gameState.selectedRow}
+                                selectedCol={gameState.selectedCol}
+                                onCellClick={handleCellClick}
+                            />
+                        </div>
 
-                {/* Left Column (Game Area) - Flex 3 */}
-                <div className="flex-[3] flex flex-col items-center justify-center gap-6 h-full">
-                    {/* Board Area - Square, Centered */}
-                    <div className="aspect-square w-full max-h-[65vh] flex items-center justify-center">
-                        <Board
-                            board={gameState.board}
-                            selectedRow={gameState.selectedRow}
-                            selectedCol={gameState.selectedCol}
-                            onCellClick={handleCellClick}
+                        {/* Controls */}
+                        <div
+                            style={{
+                                width: 'calc(var(--app-side-length) * (var(--p-control-bar-width) / var(--scale-base)))',
+                                height: 'calc(var(--app-side-length) * (var(--p-control-bar-height) / var(--scale-base)))'
+                            }}
+                        >
+                            <Controls
+                                onNumberClick={handleNumberClick}
+                                onActionClick={handleActionClick}
+                                pencilMode={gameState.pencilMode}
+                                selectedNumber={
+                                    gameState.selectedRow !== -1 && gameState.selectedCol !== -1
+                                        ? gameState.board.cells[gameState.selectedRow][gameState.selectedCol].value
+                                        : undefined
+                                }
+                                completionCounts={(() => {
+                                    const counts: Record<number, number> = {};
+                                    gameState.board.cells.forEach(row => {
+                                        row.forEach(cell => {
+                                            if (cell.value !== 0) {
+                                                counts[cell.value] = (counts[cell.value] || 0) + 1;
+                                            }
+                                        });
+                                    });
+                                    return counts;
+                                })()}
+                            />
+                        </div>
+                    </div>
+
+                    {/* Right Column: Info Bar */}
+                    <div
+                        className="flex flex-col"
+                        style={{
+                            width: 'calc(var(--app-side-length) * (var(--p-info-bar-width) / var(--scale-base)))',
+                            height: 'calc(var(--app-side-length) * (var(--p-info-bar-height) / var(--scale-base)))'
+                        }}
+                    >
+                        <StatsPanel
+                            eraseCount={gameState.eraseCount}
+                            undoCount={gameState.undoCount}
+                            timeElapsed={gameState.timeElapsed}
+                            difficulty={gameState.difficulty}
+                            userLevel={gameState.userLevel}
+                            gamesPlayed={gameState.gamesPlayed}
+                            averageTime={gameState.averageTime}
+                            winRate={gameState.winRate}
+                            pendingGames={gameState.pendingGames}
+                            currentDifficultyCount={gameState.currentDifficultyCount}
+                            winsForNextLevel={gameState.winsForNextLevel}
+                            remainingCells={gameState.remainingCells}
                         />
                     </div>
                 </div>
-
-                {/* Right Column (Info Panel) - Flex 1 */}
-                <div className="flex-[1] flex flex-col justify-center h-full max-w-sm">
-                    <StatsPanel
-                        mistakes={gameState.mistakes}
-                        timeElapsed={gameState.timeElapsed}
-                        difficulty={gameState.difficulty}
-                    />
-                </div>
-            </main>
-
-            {/* 3. Bottom Zone: Controls */}
-            <div className="w-full max-w-4xl mx-auto pb-8 px-4">
-                <Controls
-                    onNumberClick={handleNumberClick}
-                    onActionClick={handleActionClick}
-                    pencilMode={gameState.pencilMode}
-                    selectedNumber={
-                        gameState.selectedRow !== -1 && gameState.selectedCol !== -1
-                            ? gameState.board.cells[gameState.selectedRow][gameState.selectedCol].value
-                            : undefined
-                    }
-                    completionCounts={(() => {
-                        const counts: Record<number, number> = {};
-                        gameState.board.cells.forEach(row => {
-                            row.forEach(cell => {
-                                if (cell.value !== 0) {
-                                    counts[cell.value] = (counts[cell.value] || 0) + 1;
-                                }
-                            });
-                        });
-                        return counts;
-                    })()}
-                />
             </div>
 
             <HistoryModal
@@ -187,9 +250,10 @@ function App() {
                 onClose={() => setIsHistoryOpen(false)}
                 onLoadGame={() => {
                     refreshState();
-                    // Maybe show a toast?
                 }}
             />
+
+
         </div>
     );
 }

@@ -41,7 +41,7 @@ export const Board: React.FC<BoardProps> = ({ board, selectedRow, selectedCol, o
     };
 
     return (
-        <div className="aspect-square h-full w-auto bg-[#FDF6E3] rounded-2xl overflow-hidden border-4 border-[#D68D38] shadow-[0_10px_30px_rgba(0,0,0,0.5)]">
+        <div className="aspect-square h-full w-auto bg-[#FDF6E3] rounded-2xl overflow-hidden border-8 border-[#D68D38] shadow-[inset_3px_3px_6px_rgba(255,255,255,0.9),inset_-3px_-3px_6px_rgba(0,0,0,0.4),0_15px_35px_rgba(0,0,0,0.6),0_0_0_4px_rgba(214,141,56,0.4)]">
             <div className="grid grid-cols-9 grid-rows-9 w-full h-full">
                 {board.cells.map((row, r) => (
                     row.map((cell, c) => (

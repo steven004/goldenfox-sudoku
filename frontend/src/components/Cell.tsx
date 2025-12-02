@@ -20,8 +20,8 @@ export const CellComponent: React.FC<CellProps> = ({
     isSameValue,
     onClick
 }) => {
-    // Base background color (Cream/Off-white for the board)
-    let bgColor = 'bg-[#FDF6E3]';
+    // Base background color (Cream for user, Light Gray for Given)
+    let bgColor = cell.given ? 'bg-[#E5E5E5]' : 'bg-[#FDF6E3]';
 
     // Highlighting logic
     if (isSelected) {

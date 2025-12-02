@@ -30,6 +30,11 @@ type GameManager struct {
 	// User Data
 	userData      *UserData
 	currentGameID string
+
+	// Limits & History
+	eraseCount  int
+	undoCount   int
+	moveHistory []*engine.SudokuBoard
 }
 
 // NewGameManager creates a new game manager with the specified generator
@@ -51,13 +56,33 @@ func NewGameManager(generator engine.PuzzleGenerator) *GameManager {
 		conflictValue: 0,
 		startTime:     time.Now(),
 		userData:      ud,
+		moveHistory:   make([]*engine.SudokuBoard, 0),
 	}
 }
 
-// NewGame generates and starts a new puzzle of the specified difficulty
+// NewGame generates and starts a new puzzle based on User Level
 func (gm *GameManager) NewGame(difficulty engine.DifficultyLevel) error {
+	// Check for abandonment of previous game
+	if gm.currentBoard != nil && !gm.currentBoard.IsSolved() && gm.endTime.IsZero() {
+		// Previous game was in progress and not solved -> Record Loss
+		gm.userData.RecordLoss()
+		// Save the loss state
+		gm.SaveCurrentGame()
+	}
+
+	// Determine difficulty from User Level
+	// Level 1 -> Beginner (0), Level 6 -> FoxGod (5)
+	userLevel := gm.userData.Stats.Level
+	if userLevel < 1 {
+		userLevel = 1
+	}
+	if userLevel > 6 {
+		userLevel = 6
+	}
+	targetDifficulty := engine.DifficultyLevel(userLevel - 1)
+
 	// Generate a new puzzle
-	puzzle, err := gm.generator.Generate(difficulty)
+	puzzle, err := gm.generator.Generate(targetDifficulty)
 	if err != nil {
 		return fmt.Errorf("failed to generate puzzle: %w", err)
 	}
@@ -69,7 +94,7 @@ func (gm *GameManager) NewGame(difficulty engine.DifficultyLevel) error {
 	gm.currentBoard = puzzle
 
 	// Store difficulty
-	gm.difficulty = difficulty
+	gm.difficulty = targetDifficulty
 
 	// Reset selection
 	gm.selectedRow = -1
@@ -81,6 +106,11 @@ func (gm *GameManager) NewGame(difficulty engine.DifficultyLevel) error {
 	gm.startTime = time.Now()
 	gm.endTime = time.Time{} // Reset end time
 	gm.pausedTime = 0
+
+	// Reset Limits & History
+	gm.eraseCount = 0
+	gm.undoCount = 0
+	gm.moveHistory = make([]*engine.SudokuBoard, 0)
 
 	// Generate new Game ID
 	gm.currentGameID = fmt.Sprintf("%d", time.Now().UnixNano())
@@ -225,6 +255,9 @@ func (gm *GameManager) InputNumber(row, col, val int) error {
 
 		if isValid {
 			// Valid move: Set value and clear any conflict state
+			// Save state to history before modifying
+			gm.pushHistory()
+
 			if err := gm.currentBoard.SetValue(row, col, val); err != nil {
 				return err
 			}
@@ -236,9 +269,14 @@ func (gm *GameManager) InputNumber(row, col, val int) error {
 				gm.endTime = time.Now()
 
 				// Auto-save on win
+				// Auto-save on win
 				if err := gm.SaveCurrentGame(); err != nil {
 					fmt.Printf("Error auto-saving game: %v\n", err)
 				}
+			} else {
+				// Auto-save progress on valid move
+				// We ignore errors here to avoid interrupting gameplay
+				go gm.SaveCurrentGame()
 			}
 		} else {
 			// Invalid move: Do NOT set value on board. Set Transient Conflict.
@@ -279,12 +317,26 @@ func (gm *GameManager) ClearCell(row, col int) error {
 	}
 
 	// Normal Clear
+	// Check limit
+	if gm.eraseCount >= 3 {
+		return fmt.Errorf("no erase chances left")
+	}
+
+	// Save state to history
+	gm.pushHistory()
+
 	if err := gm.currentBoard.ClearCell(row, col); err != nil {
 		return err
 	}
 
-	// Also clear all candidates
+	gm.eraseCount++
+
+	// Clear value
+	gm.currentBoard.Cells[row][col].Value = 0
 	gm.currentBoard.Cells[row][col].Candidates = make(map[int]bool)
+
+	// Auto-save on clear
+	go gm.SaveCurrentGame()
 
 	return nil
 }
@@ -517,15 +569,109 @@ func (gm *GameManager) GetGameState() GameState {
 
 	selected := gm.selectedRow != -1 && gm.selectedCol != -1
 
-	return GameState{
-		Board:       board,
-		SelectedRow: gm.selectedRow,
-		SelectedCol: gm.selectedCol,
-		IsSelected:  selected,
-		PencilMode:  gm.pencilMode,
-		Mistakes:    0, // TODO: Implement mistake tracking if needed
-		TimeElapsed: gm.GetElapsedTime(),
-		Difficulty:  gm.difficulty.String(),
-		IsSolved:    gm.currentBoard != nil && gm.currentBoard.IsSolved(),
+	// Get stats safely
+	level := 1
+	gamesPlayed := 0
+	avgTimeStr := "--:--"
+	winRate := 0.0
+	pendingGames := 0
+	currentDiffCount := 0
+	consecutiveWins := 0
+	remainingCells := 81 // Default if no board
+
+	if gm.currentBoard != nil {
+		// Count remaining cells
+		filled := 0
+		for r := 0; r < 9; r++ {
+			for c := 0; c < 9; c++ {
+				if gm.currentBoard.Cells[r][c].Value != 0 {
+					filled++
+				}
+			}
+		}
+		remainingCells = 81 - filled
 	}
+
+	if gm.userData != nil {
+		gm.userData.mu.RLock()
+		level = gm.userData.Stats.Level
+		gamesPlayed = len(gm.userData.History)
+		winRate = gm.userData.GetWinRate()
+		pendingGames = gm.userData.GetPendingGamesCount()
+		currentDiffCount = gm.userData.GetGamesAtDifficulty(gm.difficulty)
+		consecutiveWins = gm.userData.Stats.ConsecutiveWins
+
+		// Average time for CURRENT difficulty
+		if avg, ok := gm.userData.Stats.AverageTimes[gm.difficulty]; ok && avg > 0 {
+			// Format seconds to MM:SS
+			minutes := int(avg) / 60
+			seconds := int(avg) % 60
+			avgTimeStr = fmt.Sprintf("%02d:%02d", minutes, seconds)
+		}
+		gm.userData.mu.RUnlock()
+	}
+
+	return GameState{
+		Board:                  board,
+		SelectedRow:            gm.selectedRow,
+		SelectedCol:            gm.selectedCol,
+		IsSelected:             selected,
+		PencilMode:             gm.pencilMode,
+		Mistakes:               0,
+		EraseCount:             gm.eraseCount,
+		UndoCount:              gm.undoCount,
+		TimeElapsed:            gm.GetElapsedTime(),
+		Difficulty:             gm.difficulty.String(),
+		IsSolved:               gm.currentBoard != nil && gm.currentBoard.IsSolved(),
+		UserLevel:              level,
+		GamesPlayed:            gamesPlayed,
+		AverageTime:            avgTimeStr,
+		WinRate:                winRate,
+		PendingGames:           pendingGames,
+		CurrentDifficultyCount: currentDiffCount,
+		WinsForNextLevel:       5 - consecutiveWins,
+		RemainingCells:         remainingCells,
+	}
+}
+
+// pushHistory saves the current board state to history
+func (gm *GameManager) pushHistory() {
+	if gm.currentBoard == nil {
+		return
+	}
+	// Clone current board
+	snapshot := gm.currentBoard.Clone()
+	gm.moveHistory = append(gm.moveHistory, snapshot)
+}
+
+// Undo reverts the last move
+func (gm *GameManager) Undo() error {
+	if gm.currentBoard == nil {
+		return fmt.Errorf("no game in progress")
+	}
+
+	if gm.undoCount >= 3 {
+		return fmt.Errorf("no undo chances left")
+	}
+
+	if len(gm.moveHistory) == 0 {
+		return fmt.Errorf("nothing to undo")
+	}
+
+	// Pop last state
+	lastIndex := len(gm.moveHistory) - 1
+	previousBoard := gm.moveHistory[lastIndex]
+	gm.moveHistory = gm.moveHistory[:lastIndex]
+
+	// Restore board
+	gm.currentBoard = previousBoard
+	gm.undoCount++
+
+	// Reset conflict state as we reverted to a (presumably) valid state
+	gm.ResetConflict()
+
+	// Auto-save
+	go gm.SaveCurrentGame()
+
+	return nil
 }

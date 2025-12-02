@@ -10,7 +10,18 @@ type GameState struct {
 	IsSelected  bool               `json:"isSelected"`
 	PencilMode  bool               `json:"pencilMode"`
 	Mistakes    int                `json:"mistakes"`
+	EraseCount  int                `json:"eraseCount"`
+	UndoCount   int                `json:"undoCount"`
 	TimeElapsed string             `json:"timeElapsed"` // formatted string
 	Difficulty  string             `json:"difficulty"`
 	IsSolved    bool               `json:"isSolved"`
+	// User Stats
+	UserLevel              int     `json:"userLevel"`
+	GamesPlayed            int     `json:"gamesPlayed"`
+	WinRate                float64 `json:"winRate"`
+	PendingGames           int     `json:"pendingGames"`
+	AverageTime            string  `json:"averageTime"` // Formatted string
+	CurrentDifficultyCount int     `json:"currentDifficultyCount"`
+	WinsForNextLevel       int     `json:"winsForNextLevel"`
+	RemainingCells         int     `json:"remainingCells"`
 }
