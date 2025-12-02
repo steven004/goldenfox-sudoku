@@ -57,13 +57,16 @@ type Coordinate struct {
 
 // SudokuBoard represents a 9x9 Sudoku grid
 type SudokuBoard struct {
-	Cells [9][9]Cell `json:"cells"`
+	Cells [][]Cell `json:"cells"`
 }
 
 // NewBoard creates a new empty Sudoku board
 func NewBoard() *SudokuBoard {
-	board := &SudokuBoard{}
+	board := &SudokuBoard{
+		Cells: make([][]Cell, 9),
+	}
 	for i := 0; i < 9; i++ {
+		board.Cells[i] = make([]Cell, 9)
 		for j := 0; j < 9; j++ {
 			board.Cells[i][j] = NewCell()
 		}

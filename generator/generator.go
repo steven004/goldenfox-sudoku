@@ -1,11 +1,10 @@
 package generator
 
 import (
+	"bytes"
 	"encoding/csv"
 	"fmt"
 	"math/rand"
-	"os"
-	"path/filepath"
 	"time"
 
 	"github.com/steven004/goldenfox-sudoku/engine"
@@ -23,29 +22,23 @@ type PreloadedGenerator struct {
 	rand    *rand.Rand
 }
 
-// NewPreloadedGenerator creates a new generator that loads puzzles from a CSV file
-func NewPreloadedGenerator(dataPath string) (*PreloadedGenerator, error) {
+// NewPreloadedGenerator creates a new generator that loads puzzles from CSV data
+func NewPreloadedGenerator(data []byte) (*PreloadedGenerator, error) {
 	gen := &PreloadedGenerator{
 		puzzles: make(map[engine.DifficultyLevel][]PuzzleData),
 		rand:    rand.New(rand.NewSource(time.Now().UnixNano())),
 	}
 
-	if err := gen.loadPuzzles(dataPath); err != nil {
+	if err := gen.loadPuzzles(data); err != nil {
 		return nil, fmt.Errorf("failed to load puzzles: %w", err)
 	}
 
 	return gen, nil
 }
 
-// loadPuzzles reads the CSV file and organizes puzzles by difficulty
-func (g *PreloadedGenerator) loadPuzzles(dataPath string) error {
-	file, err := os.Open(dataPath)
-	if err != nil {
-		return fmt.Errorf("failed to open data file: %w", err)
-	}
-	defer file.Close()
-
-	reader := csv.NewReader(file)
+// loadPuzzles reads the CSV data and organizes puzzles by difficulty
+func (g *PreloadedGenerator) loadPuzzles(data []byte) error {
+	reader := csv.NewReader(bytes.NewReader(data))
 
 	// Skip header row
 	if _, err := reader.Read(); err != nil {
@@ -254,9 +247,4 @@ func parsePuzzleString(puzzleStr string) (*engine.SudokuBoard, error) {
 // GetPuzzleCount returns the number of puzzles available for a given difficulty
 func (g *PreloadedGenerator) GetPuzzleCount(difficulty engine.DifficultyLevel) int {
 	return len(g.puzzles[difficulty])
-}
-
-// GetDefaultDataPath returns the default path to the puzzle data file
-func GetDefaultDataPath() string {
-	return filepath.Join("Data", "sudoku_curated_5000.csv")
 }

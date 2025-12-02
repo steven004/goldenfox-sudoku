@@ -2,12 +2,16 @@ package main
 
 import (
 	"context"
+	_ "embed"
 	"fmt"
 
 	"github.com/steven004/goldenfox-sudoku/engine"
 	"github.com/steven004/goldenfox-sudoku/game"
 	"github.com/steven004/goldenfox-sudoku/generator"
 )
+
+//go:embed Data/sudoku_curated_5000.csv
+var puzzleData []byte
 
 // App struct
 type App struct {
@@ -17,18 +21,17 @@ type App struct {
 
 // NewApp creates a new App application struct
 func NewApp() *App {
-	// Try to initialize the preloaded generator with the dataset
-	dataPath := generator.GetDefaultDataPath()
-	gen, err := generator.NewPreloadedGenerator(dataPath)
+	// Initialize the preloaded generator with the embedded dataset
+	gen, err := generator.NewPreloadedGenerator(puzzleData)
 
 	var gameManager *game.GameManager
 	if err != nil {
-		fmt.Printf("Warning: Failed to load puzzle dataset from %s: %v\n", dataPath, err)
+		fmt.Printf("Warning: Failed to load embedded puzzle dataset: %v\n", err)
 		fmt.Println("Falling back to simple generator")
 		simpleGen := generator.NewSimpleGenerator()
 		gameManager = game.NewGameManager(simpleGen)
 	} else {
-		fmt.Printf("Successfully loaded puzzle dataset from %s\n", dataPath)
+		fmt.Println("Successfully loaded embedded puzzle dataset")
 		gameManager = game.NewGameManager(gen)
 	}
 

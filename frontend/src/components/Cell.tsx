@@ -82,7 +82,7 @@ export const CellComponent: React.FC<CellProps> = ({
                 // Render candidates (Pencil Marks)
                 <div className="grid grid-cols-3 grid-rows-3 w-full h-full pointer-events-none">
                     {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(num => (
-                        <div key={num} className="flex items-center justify-center text-[10px] text-[#636e72] leading-none font-medium">
+                        <div key={num} className="flex items-center justify-center text-[15px] text-[#636e72] leading-none font-medium">
                             {cell.candidates && cell.candidates[num] ? num : ''}
                         </div>
                     ))}

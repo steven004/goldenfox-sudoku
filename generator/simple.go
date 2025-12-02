@@ -87,36 +87,3 @@ func (g *SimplePuzzleGenerator) Generate(difficulty engine.DifficultyLevel) (*en
 
 	return board, nil
 }
-
-func (g *SimplePuzzleGenerator) fillDiagonal(board *engine.SudokuBoard) {
-	for i := 0; i < 9; i = i + 3 {
-		g.fillBox(board, i, i)
-	}
-}
-
-func (g *SimplePuzzleGenerator) fillBox(board *engine.SudokuBoard, row, col int) {
-	num := 0
-	for i := 0; i < 3; i++ {
-		for j := 0; j < 3; j++ {
-			for {
-				num = g.rand.Intn(9) + 1
-				if g.isSafeInBox(board, row, col, num) {
-					break
-				}
-			}
-			board.Cells[row+i][col+j].Value = num
-			board.Cells[row+i][col+j].Given = true // Mark as given for generation
-		}
-	}
-}
-
-func (g *SimplePuzzleGenerator) isSafeInBox(board *engine.SudokuBoard, rowStart, colStart, num int) bool {
-	for i := 0; i < 3; i++ {
-		for j := 0; j < 3; j++ {
-			if board.Cells[rowStart+i][colStart+j].Value == num {
-				return false
-			}
-		}
-	}
-	return true
-}
