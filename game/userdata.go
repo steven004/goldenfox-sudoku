@@ -60,8 +60,23 @@ func NewUserData() *UserData {
 	}
 }
 
+// getUserDataPath returns the platform-specific path for user data
+func getUserDataPath() (string, error) {
+	configDir, err := os.UserConfigDir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(configDir, "GoldenFoxSudoku", "user_data.json"), nil
+}
+
 // Save saves the user data to a JSON file
-func (ud *UserData) Save(filename string) error {
+func (ud *UserData) Save(filename string) error { // filename argument is now ignored in favor of standard path, kept for interface compatibility if needed, or better removed. Let's keep signature but ignore it or use it as override.
+	// Better: Ignore filename and use standard path.
+	path, err := getUserDataPath()
+	if err != nil {
+		return fmt.Errorf("failed to get user data path: %w", err)
+	}
+
 	ud.mu.RLock()
 	defer ud.mu.RUnlock()
 
@@ -71,21 +86,26 @@ func (ud *UserData) Save(filename string) error {
 	}
 
 	// Ensure directory exists
-	dir := filepath.Dir(filename)
+	dir := filepath.Dir(path)
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		return fmt.Errorf("failed to create directory: %w", err)
 	}
 
-	if err := os.WriteFile(filename, data, 0644); err != nil {
+	if err := os.WriteFile(path, data, 0644); err != nil {
 		return fmt.Errorf("failed to write user data file: %w", err)
 	}
 
 	return nil
 }
 
-// LoadUserData loads user data from a JSON file
+// LoadUserData loads user data from the standard location
 func LoadUserData(filename string) (*UserData, error) {
-	data, err := os.ReadFile(filename)
+	path, err := getUserDataPath()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get user data path: %w", err)
+	}
+
+	data, err := os.ReadFile(path)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return NewUserData(), nil // Return new if not exists
