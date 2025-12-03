@@ -18,10 +18,6 @@ export function GetHistory() {
   return window['go']['main']['App']['GetHistory']();
 }
 
-export function Greet(arg1) {
-  return window['go']['main']['App']['Greet'](arg1);
-}
-
 export function InputNumber(arg1) {
   return window['go']['main']['App']['InputNumber'](arg1);
 }

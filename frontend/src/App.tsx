@@ -1,11 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
 import confetti from 'canvas-confetti';
+import { CircleHelp } from 'lucide-react';
 import bgImage from './assets/images/background.png';
 
 import { Board } from './components/Board';
 import { Controls } from './components/Controls';
 import { StatsPanel } from './components/StatsPanel';
 import { HistoryModal } from './components/HistoryModal';
+import { HelpModal } from './components/HelpModal';
 import { GameState } from './types';
 import LayoutConfig from './config.json';
 import { GetGameState, SelectCell, InputNumber, TogglePencilMode, NewGame, ClearCell } from '../wailsjs/go/main/App';
@@ -13,6 +15,7 @@ import { GetGameState, SelectCell, InputNumber, TogglePencilMode, NewGame, Clear
 function App() {
     const [gameState, setGameState] = useState<GameState | null>(null);
     const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+    const [isHelpOpen, setIsHelpOpen] = useState(false);
 
     const refreshState = useCallback(() => {
         GetGameState().then((state: any) => {
@@ -153,8 +156,17 @@ function App() {
                         height: 'calc(var(--app-side-length) * (var(--p-header-height) / var(--scale-base)))',
                         width: '100%'
                     }}
-                    className="shrink-0 flex items-center justify-center"
+                    className="shrink-0 flex items-center justify-center relative"
                 >
+                    {/* Help Button */}
+                    <button
+                        onClick={() => setIsHelpOpen(true)}
+                        className="absolute right-8 top-1/2 -translate-y-1/2 p-2 text-[#D68D38] hover:text-[#FFD28F] transition-colors hover:scale-110 active:scale-95"
+                        title="How to Play"
+                    >
+                        <CircleHelp size={32} strokeWidth={2} />
+                    </button>
+
                     {gameState?.isSolved && (
                         <div className="text-6xl font-black text-transparent bg-clip-text bg-gradient-to-b from-[#FFD28F] to-[#D68D38] drop-shadow-[0_2px_10px_rgba(214,141,56,0.5)] animate-in fade-in zoom-in duration-500 tracking-widest">
                             VICTORY!
@@ -253,6 +265,10 @@ function App() {
                 }}
             />
 
+            <HelpModal
+                isOpen={isHelpOpen}
+                onClose={() => setIsHelpOpen(false)}
+            />
 
         </div>
     );

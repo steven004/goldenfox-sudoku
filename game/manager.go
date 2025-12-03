@@ -246,7 +246,26 @@ func (gm *GameManager) InputNumber(row, col, val int) error {
 		if gm.conflictRow != -1 && (row != gm.conflictRow || col != gm.conflictCol) {
 			return fmt.Errorf("must resolve conflict at [%d][%d] first", gm.conflictRow+1, gm.conflictCol+1)
 		}
-		return gm.currentBoard.AddCandidate(row, col, val)
+
+		// Toggle candidate: if exists, remove it; otherwise, add it.
+		candidates, err := gm.currentBoard.GetCandidates(row, col)
+		if err != nil {
+			return err
+		}
+
+		exists := false
+		for _, c := range candidates {
+			if c == val {
+				exists = true
+				break
+			}
+		}
+
+		if exists {
+			return gm.currentBoard.RemoveCandidate(row, col, val)
+		} else {
+			return gm.currentBoard.AddCandidate(row, col, val)
+		}
 	} else {
 		// Place number
 

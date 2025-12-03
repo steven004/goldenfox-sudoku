@@ -23,17 +23,13 @@ type App struct {
 func NewApp() *App {
 	// Initialize the preloaded generator with the embedded dataset
 	gen, err := generator.NewPreloadedGenerator(puzzleData)
-
-	var gameManager *game.GameManager
 	if err != nil {
-		fmt.Printf("Warning: Failed to load embedded puzzle dataset: %v\n", err)
-		fmt.Println("Falling back to simple generator")
-		simpleGen := generator.NewSimpleGenerator()
-		gameManager = game.NewGameManager(simpleGen)
-	} else {
-		fmt.Println("Successfully loaded embedded puzzle dataset")
-		gameManager = game.NewGameManager(gen)
+		// This should theoretically never happen if the embed is correct
+		panic(fmt.Sprintf("Critical Error: Failed to load embedded puzzle dataset: %v", err))
 	}
+
+	fmt.Println("Successfully loaded embedded puzzle dataset")
+	gameManager := game.NewGameManager(gen)
 
 	return &App{
 		gameManager: gameManager,
@@ -152,11 +148,6 @@ func (a *App) ClearCell() error {
 // Undo reverts the last move
 func (a *App) Undo() error {
 	return a.gameManager.Undo()
-}
-
-// Greet returns a greeting for the given name
-func (a *App) Greet(name string) string {
-	return fmt.Sprintf("Hello %s, It's show time!", name)
 }
 
 // GetHistory returns the user's puzzle history

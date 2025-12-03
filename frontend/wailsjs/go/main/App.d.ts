@@ -11,8 +11,6 @@ export function GetGameState():Promise<game.GameState>;
 
 export function GetHistory():Promise<Array<game.PuzzleRecord>>;
 
-export function Greet(arg1:string):Promise<string>;
-
 export function InputNumber(arg1:number):Promise<void>;
 
 export function LoadGame(arg1:string):Promise<void>;
