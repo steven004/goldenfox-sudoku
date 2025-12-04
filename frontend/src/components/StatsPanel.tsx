@@ -25,7 +25,7 @@ interface StatsPanelProps {
     winRate: number;
     pendingGames: number;
     currentDifficultyCount: number;
-    winsForNextLevel: number;
+    progress: number;
     remainingCells: number;
 }
 
@@ -40,7 +40,7 @@ export const StatsPanel: React.FC<StatsPanelProps> = ({
     winRate,
     pendingGames,
     currentDifficultyCount,
-    winsForNextLevel,
+    progress,
     remainingCells
 }) => {
 
@@ -118,16 +118,60 @@ export const StatsPanel: React.FC<StatsPanelProps> = ({
 
             {/* SECTION 3: User Stats */}
             <div className="flex flex-col bg-black/20 rounded-lg p-5 shadow-[inset_0_2px_4px_rgba(0,0,0,0.4),0_1px_0_rgba(255,255,255,0.1)] border border-white/5 flex-grow overflow-y-auto">
-                <div className="flex items-center justify-between pb-3 border-b border-white/10 mb-2">
-                    <div className="flex items-center gap-2 text-yellow-400">
-                        <Crown size={20} />
-                        <span className="text-base font-bold uppercase">User Level</span>
+
+                {/* Level Progress Visual */}
+                <div className="mb-6">
+                    <div className="flex justify-between text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">
+                        <span className={progress < 0 ? "text-red-400" : ""}>
+                            {userLevel > 1 ? `Lv.${userLevel - 1}` : "Min"}
+                        </span>
+                        <span className="text-fox-orange">Lv.{userLevel}</span>
+                        <span className={progress > 0 ? "text-green-400" : ""}>
+                            {userLevel < 6 ? `Lv.${userLevel + 1}` : "Max"}
+                        </span>
                     </div>
-                    <span className="text-2xl font-bold text-yellow-400">Lv.{userLevel}</span>
+
+                    <div className="relative h-8 flex items-center justify-center">
+                        {/* Track Line */}
+                        <div className="absolute w-full h-1 bg-gray-700 rounded-full" />
+
+                        {/* Nodes */}
+                        <div className="absolute w-full flex justify-between px-1">
+                            {/* Loss Zone (-3 to -1) */}
+                            {[-3, -2, -1].map((step) => (
+                                <div
+                                    key={step}
+                                    className={`w-2 h-2 rounded-full transition-all duration-300 ${progress <= step ? 'bg-red-500 shadow-[0_0_8px_#EF4444] scale-125' : 'bg-gray-600'
+                                        }`}
+                                />
+                            ))}
+
+                            {/* Neutral Zone (0) */}
+                            <div className={`w-3 h-3 rounded-full transition-all duration-300 z-10 ${progress === 0 ? 'bg-white shadow-[0_0_10px_white] scale-125' : 'bg-gray-500'
+                                }`} />
+
+                            {/* Win Zone (+1 to +5) */}
+                            {[1, 2, 3, 4, 5].map((step) => (
+                                <div
+                                    key={step}
+                                    className={`w-2 h-2 rounded-full transition-all duration-300 ${progress >= step ? 'bg-green-500 shadow-[0_0_8px_#22C55E] scale-125' : 'bg-gray-600'
+                                        }`}
+                                />
+                            ))}
+                        </div>
+
+                        {/* Current Position Indicator (Fox Head / Marker) */}
+                        {/* We can animate this later, for now the highlighted nodes show position well enough */}
+                    </div>
+
+                    <div className="text-center mt-1 text-xs text-gray-400 font-medium">
+                        {progress === 0 && "Ready to start"}
+                        {progress > 0 && `${5 - progress} wins to Level Up!`}
+                        {progress < 0 && `${3 + progress} losses to Demotion`}
+                    </div>
                 </div>
 
                 <div className="flex flex-col gap-1 justify-between flex-grow">
-                    <StatRow icon={Target} label="Next Level" value={`${winsForNextLevel} Wins`} />
                     <StatRow icon={Gamepad2} label="Total Games" value={gamesPlayed} />
                     <StatRow icon={Percent} label="Win Rate" value={`${winRate.toFixed(1)}%`} />
                     <StatRow icon={Hourglass} label="Pending" value={pendingGames} />

@@ -71,7 +71,7 @@ export namespace game {
 	    pendingGames: number;
 	    averageTime: string;
 	    currentDifficultyCount: number;
-	    winsForNextLevel: number;
+	    progress: number;
 	    remainingCells: number;
 	
 	    static createFrom(source: any = {}) {
@@ -97,7 +97,7 @@ export namespace game {
 	        this.pendingGames = source["pendingGames"];
 	        this.averageTime = source["averageTime"];
 	        this.currentDifficultyCount = source["currentDifficultyCount"];
-	        this.winsForNextLevel = source["winsForNextLevel"];
+	        this.progress = source["progress"];
 	        this.remainingCells = source["remainingCells"];
 	    }
 	

@@ -386,47 +386,6 @@ func (gm *GameManager) FindConflicts() []engine.Coordinate {
 	return gm.currentBoard.FindConflicts()
 }
 
-// IsNumberComplete returns true if all 9 instances of a number are placed
-func (gm *GameManager) IsNumberComplete(val int) bool {
-	if gm.currentBoard == nil {
-		return false
-	}
-	return gm.currentBoard.CountNumber(val) == 9
-}
-
-// GetCellValue returns the value at the specified position
-func (gm *GameManager) GetCellValue(row, col int) (int, error) {
-	if gm.currentBoard == nil {
-		return 0, fmt.Errorf("no game in progress")
-	}
-	return gm.currentBoard.GetValue(row, col)
-}
-
-// GetCellCandidates returns the pencil notes for a cell
-func (gm *GameManager) GetCellCandidates(row, col int) ([]int, error) {
-	if gm.currentBoard == nil {
-		return nil, fmt.Errorf("no game in progress")
-	}
-	return gm.currentBoard.GetCandidates(row, col)
-}
-
-// IsCellGiven returns true if the cell is a given clue
-func (gm *GameManager) IsCellGiven(row, col int) bool {
-	if gm.currentBoard == nil {
-		return false
-	}
-	if row < 0 || row > 8 || col < 0 || col > 8 {
-		return false
-	}
-	return gm.currentBoard.Cells[row][col].Given
-}
-
-// GetMistakes returns the current mistake count
-func (gm *GameManager) GetMistakes() int {
-	// TODO: Implement actual mistake tracking
-	return 0
-}
-
 // GetElapsedTime returns the formatted elapsed time string
 func (gm *GameManager) GetElapsedTime() string {
 	if gm.currentBoard == nil {
@@ -595,7 +554,7 @@ func (gm *GameManager) GetGameState() GameState {
 	winRate := 0.0
 	pendingGames := 0
 	currentDiffCount := 0
-	consecutiveWins := 0
+	progress := 0
 	remainingCells := 81 // Default if no board
 
 	if gm.currentBoard != nil {
@@ -618,7 +577,7 @@ func (gm *GameManager) GetGameState() GameState {
 		winRate = gm.userData.GetWinRate()
 		pendingGames = gm.userData.GetPendingGamesCount()
 		currentDiffCount = gm.userData.GetGamesAtDifficulty(gm.difficulty)
-		consecutiveWins = gm.userData.Stats.ConsecutiveWins
+		progress = gm.userData.Stats.Progress
 
 		// Average time for CURRENT difficulty
 		if avg, ok := gm.userData.Stats.AverageTimes[gm.difficulty]; ok && avg > 0 {
@@ -648,7 +607,7 @@ func (gm *GameManager) GetGameState() GameState {
 		WinRate:                winRate,
 		PendingGames:           pendingGames,
 		CurrentDifficultyCount: currentDiffCount,
-		WinsForNextLevel:       5 - consecutiveWins,
+		Progress:               progress,
 		RemainingCells:         remainingCells,
 	}
 }

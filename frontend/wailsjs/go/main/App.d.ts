@@ -17,6 +17,8 @@ export function LoadGame(arg1:string):Promise<void>;
 
 export function NewGame(arg1:string):Promise<void>;
 
+export function RestartGame():Promise<void>;
+
 export function SaveGame():Promise<void>;
 
 export function SelectCell(arg1:number,arg2:number):Promise<void>;

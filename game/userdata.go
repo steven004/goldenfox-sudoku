@@ -25,15 +25,14 @@ type PuzzleRecord struct {
 
 // UserStats holds aggregated statistics for the user
 type UserStats struct {
-	Level             int                                `json:"level"` // User's experience level (1-6)
-	ConsecutiveWins   int                                `json:"consecutive_wins"`
-	ConsecutiveLosses int                                `json:"consecutive_losses"`
-	JoinTime          time.Time                          `json:"join_time"`
-	TotalSolved       int                                `json:"total_solved"`
-	BestTimes         map[engine.DifficultyLevel]float64 `json:"best_times"`    // In seconds
-	AverageTimes      map[engine.DifficultyLevel]float64 `json:"average_times"` // In seconds
-	TotalTimes        map[engine.DifficultyLevel]float64 `json:"total_times"`   // In seconds (helper for average)
-	SolvedCounts      map[engine.DifficultyLevel]int     `json:"solved_counts"` // Helper for average
+	Level        int                                `json:"level"`    // User's experience level (1-6)
+	Progress     int                                `json:"progress"` // -2 to +4 (at +5 level up, at -3 level down)
+	JoinTime     time.Time                          `json:"join_time"`
+	TotalSolved  int                                `json:"total_solved"`
+	BestTimes    map[engine.DifficultyLevel]float64 `json:"best_times"`    // In seconds
+	AverageTimes map[engine.DifficultyLevel]float64 `json:"average_times"` // In seconds
+	TotalTimes   map[engine.DifficultyLevel]float64 `json:"total_times"`   // In seconds (helper for average)
+	SolvedCounts map[engine.DifficultyLevel]int     `json:"solved_counts"` // Helper for average
 }
 
 // UserData is the root structure for user persistence
@@ -47,14 +46,13 @@ type UserData struct {
 func NewUserData() *UserData {
 	return &UserData{
 		Stats: UserStats{
-			Level:             1,
-			ConsecutiveWins:   0,
-			ConsecutiveLosses: 0,
-			JoinTime:          time.Now(),
-			BestTimes:         make(map[engine.DifficultyLevel]float64),
-			AverageTimes:      make(map[engine.DifficultyLevel]float64),
-			TotalTimes:        make(map[engine.DifficultyLevel]float64),
-			SolvedCounts:      make(map[engine.DifficultyLevel]int),
+			Level:        1,
+			Progress:     0,
+			JoinTime:     time.Now(),
+			BestTimes:    make(map[engine.DifficultyLevel]float64),
+			AverageTimes: make(map[engine.DifficultyLevel]float64),
+			TotalTimes:   make(map[engine.DifficultyLevel]float64),
+			SolvedCounts: make(map[engine.DifficultyLevel]int),
 		},
 		History: make([]PuzzleRecord, 0),
 	}
@@ -70,8 +68,7 @@ func getUserDataPath() (string, error) {
 }
 
 // Save saves the user data to a JSON file
-func (ud *UserData) Save(filename string) error { // filename argument is now ignored in favor of standard path, kept for interface compatibility if needed, or better removed. Let's keep signature but ignore it or use it as override.
-	// Better: Ignore filename and use standard path.
+func (ud *UserData) Save(filename string) error {
 	path, err := getUserDataPath()
 	if err != nil {
 		return fmt.Errorf("failed to get user data path: %w", err)
@@ -85,7 +82,6 @@ func (ud *UserData) Save(filename string) error { // filename argument is now ig
 		return fmt.Errorf("failed to marshal user data: %w", err)
 	}
 
-	// Ensure directory exists
 	dir := filepath.Dir(path)
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		return fmt.Errorf("failed to create directory: %w", err)
@@ -108,7 +104,7 @@ func LoadUserData(filename string) (*UserData, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return NewUserData(), nil // Return new if not exists
+			return NewUserData(), nil
 		}
 		return nil, fmt.Errorf("failed to read user data file: %w", err)
 	}
@@ -118,7 +114,6 @@ func LoadUserData(filename string) (*UserData, error) {
 		return nil, fmt.Errorf("failed to unmarshal user data: %w", err)
 	}
 
-	// Initialize maps if nil (in case of empty JSON or old version)
 	if ud.Stats.BestTimes == nil {
 		ud.Stats.BestTimes = make(map[engine.DifficultyLevel]float64)
 	}
@@ -135,40 +130,6 @@ func LoadUserData(filename string) (*UserData, error) {
 	return &ud, nil
 }
 
-// AddPuzzleRecord adds a record and updates stats
-func (ud *UserData) AddPuzzleRecord(record PuzzleRecord) {
-	ud.mu.Lock()
-	defer ud.mu.Unlock()
-
-	ud.History = append(ud.History, record)
-
-	if record.IsSolved {
-		ud.Stats.TotalSolved++
-		ud.Stats.SolvedCounts[record.Difficulty]++
-
-		seconds := record.TimeElapsed.Seconds()
-
-		// Update Total Time for average calculation
-		ud.Stats.TotalTimes[record.Difficulty] += seconds
-
-		// Recalculate Average
-		count := float64(ud.Stats.SolvedCounts[record.Difficulty])
-		ud.Stats.AverageTimes[record.Difficulty] = ud.Stats.TotalTimes[record.Difficulty] / count
-
-		// Update Best Time
-		currentBest, exists := ud.Stats.BestTimes[record.Difficulty]
-		if !exists || seconds < currentBest {
-			ud.Stats.BestTimes[record.Difficulty] = seconds
-		}
-
-		// Simple Level Up Logic (e.g., every 5 puzzles)
-		// This is a placeholder for more complex logic
-		if ud.Stats.TotalSolved%5 == 0 {
-			ud.Stats.Level++
-		}
-	}
-}
-
 // UpsertPuzzleRecord adds or updates a record and updates stats if newly solved
 func (ud *UserData) UpsertPuzzleRecord(record PuzzleRecord) {
 	ud.mu.Lock()
@@ -183,16 +144,12 @@ func (ud *UserData) UpsertPuzzleRecord(record PuzzleRecord) {
 	}
 
 	if existingIdx != -1 {
-		// Update existing
 		oldRecord := ud.History[existingIdx]
 		ud.History[existingIdx] = record
-
-		// If it wasn't solved before but is now, update stats
 		if !oldRecord.IsSolved && record.IsSolved {
 			ud.updateStats(record)
 		}
 	} else {
-		// Append new
 		ud.History = append(ud.History, record)
 		if record.IsSolved {
 			ud.updateStats(record)
@@ -221,14 +178,19 @@ func (ud *UserData) updateStats(record PuzzleRecord) {
 	}
 
 	// Level Up Logic
-	// Win 5 consecutive games -> Level Up
-	ud.Stats.ConsecutiveWins++
-	ud.Stats.ConsecutiveLosses = 0 // Reset losses on win
+	// Win: Progress +1
+	if ud.Stats.Progress < 0 {
+		ud.Stats.Progress = 1 // Reset to +1 if coming from negative
+	} else {
+		ud.Stats.Progress++
+	}
 
-	if ud.Stats.ConsecutiveWins >= 5 {
+	if ud.Stats.Progress >= 5 {
 		if ud.Stats.Level < 6 { // Max Level 6 (FoxGod)
 			ud.Stats.Level++
-			ud.Stats.ConsecutiveWins = 0 // Reset after promotion
+			ud.Stats.Progress = 0 // Reset after promotion
+		} else {
+			ud.Stats.Progress = 5 // Cap at max progress for max level
 		}
 	}
 }
@@ -238,15 +200,21 @@ func (ud *UserData) RecordLoss() {
 	ud.mu.Lock()
 	defer ud.mu.Unlock()
 
-	ud.Stats.ConsecutiveLosses++
-	ud.Stats.ConsecutiveWins = 0 // Reset wins on loss
+	// Loss: Progress -1
+	if ud.Stats.Progress > 0 {
+		ud.Stats.Progress = -1 // Reset to -1 if coming from positive
+	} else {
+		ud.Stats.Progress--
+	}
 
 	// Level Down Logic
-	// Fail 3 consecutive games -> Level Down
-	if ud.Stats.ConsecutiveLosses >= 3 {
+	// Fail 3 consecutive games (Progress reaches -3) -> Level Down
+	if ud.Stats.Progress <= -3 {
 		if ud.Stats.Level > 1 { // Min Level 1 (Beginner)
 			ud.Stats.Level--
-			ud.Stats.ConsecutiveLosses = 0 // Reset after demotion
+			ud.Stats.Progress = 0 // Reset after demotion
+		} else {
+			ud.Stats.Progress = -3 // Cap at min progress for min level
 		}
 	}
 }

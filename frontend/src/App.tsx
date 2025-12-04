@@ -10,7 +10,7 @@ import { HistoryModal } from './components/HistoryModal';
 import { HelpModal } from './components/HelpModal';
 import { GameState } from './types';
 import LayoutConfig from './config.json';
-import { GetGameState, SelectCell, InputNumber, TogglePencilMode, NewGame, ClearCell } from '../wailsjs/go/main/App';
+import { GetGameState, SelectCell, InputNumber, TogglePencilMode, NewGame, ClearCell, RestartGame, Undo } from '../wailsjs/go/main/App';
 
 function App() {
     const [gameState, setGameState] = useState<GameState | null>(null);
@@ -102,11 +102,14 @@ function App() {
                     await NewGame("Easy"); // Default to Easy for now
                     break;
                 case 'restart':
-                    // TODO: Implement Restart in backend binding if not already
-                    await NewGame("Easy"); // Temporary
+                    await RestartGame();
                     break;
                 case 'history':
                     setIsHistoryOpen(true);
+                    break;
+                case 'undo':
+                    if (gameState?.isSolved) return;
+                    await Undo();
                     break;
                 // Other actions...
             }
@@ -250,7 +253,7 @@ function App() {
                             winRate={gameState.winRate}
                             pendingGames={gameState.pendingGames}
                             currentDifficultyCount={gameState.currentDifficultyCount}
-                            winsForNextLevel={gameState.winsForNextLevel}
+                            progress={gameState.progress}
                             remainingCells={gameState.remainingCells}
                         />
                     </div>

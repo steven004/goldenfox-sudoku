@@ -30,6 +30,10 @@ export function NewGame(arg1) {
   return window['go']['main']['App']['NewGame'](arg1);
 }
 
+export function RestartGame() {
+  return window['go']['main']['App']['RestartGame']();
+}
+
 export function SaveGame() {
   return window['go']['main']['App']['SaveGame']();
 }

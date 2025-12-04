@@ -101,6 +101,11 @@ func (a *App) NewGame(difficultyStr string) error {
 	return a.gameManager.NewGame(diff)
 }
 
+// RestartGame restarts the current game to its initial state
+func (a *App) RestartGame() error {
+	return a.gameManager.RestartGame()
+}
+
 // SelectCell selects a cell at the given row and column
 func (a *App) SelectCell(row, col int) {
 	a.gameManager.SelectCell(row, col)

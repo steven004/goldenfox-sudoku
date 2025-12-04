@@ -22,6 +22,6 @@ type GameState struct {
 	PendingGames           int     `json:"pendingGames"`
 	AverageTime            string  `json:"averageTime"` // Formatted string
 	CurrentDifficultyCount int     `json:"currentDifficultyCount"`
-	WinsForNextLevel       int     `json:"winsForNextLevel"`
+	Progress               int     `json:"progress"` // -3 to +5
 	RemainingCells         int     `json:"remainingCells"`
 }

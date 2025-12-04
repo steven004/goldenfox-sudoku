@@ -27,6 +27,6 @@ export interface GameState {
     pendingGames: number;
     averageTime: string;
     currentDifficultyCount: number;
-    winsForNextLevel: number;
+    progress: number;
     remainingCells: number;
 }
