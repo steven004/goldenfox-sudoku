@@ -61,9 +61,19 @@ func (a *App) startup(ctx context.Context) {
 		diff = engine.Expert
 	}
 
-	fmt.Printf("Starting initial game for User Level %d (Difficulty: %s)\n", level, diff)
+	// Try to load the last played game (if any)
+	lastGameID := a.gameManager.GetLastGameID()
+	if lastGameID != "" {
+		fmt.Printf("Resuming last game: %s\n", lastGameID)
+		if err := a.gameManager.LoadGame(lastGameID); err == nil {
+			return // Successfully resumed
+		} else {
+			fmt.Printf("Failed to resume last game: %v\n", err)
+		}
+	}
 
-	// Start a new game using the standard logic (generates ID, etc.)
+	// If no last game or failed to load, start a new one
+	fmt.Printf("Starting initial game for User Level %d (Difficulty: %s)\n", level, diff)
 	if err := a.gameManager.NewGame(diff); err != nil {
 		fmt.Printf("Error starting initial game: %v\n", err)
 	}

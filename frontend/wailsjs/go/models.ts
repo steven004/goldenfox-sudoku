@@ -62,7 +62,7 @@ export namespace game {
 	    mistakes: number;
 	    eraseCount: number;
 	    undoCount: number;
-	    timeElapsed: string;
+	    elapsedSeconds: number;
 	    difficulty: string;
 	    isSolved: boolean;
 	    userLevel: number;
@@ -88,7 +88,7 @@ export namespace game {
 	        this.mistakes = source["mistakes"];
 	        this.eraseCount = source["eraseCount"];
 	        this.undoCount = source["undoCount"];
-	        this.timeElapsed = source["timeElapsed"];
+	        this.elapsedSeconds = source["elapsedSeconds"];
 	        this.difficulty = source["difficulty"];
 	        this.isSolved = source["isSolved"];
 	        this.userLevel = source["userLevel"];
