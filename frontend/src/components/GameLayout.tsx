@@ -6,6 +6,7 @@ import { Controls } from './Controls';
 import { StatsPanel } from './StatsPanel';
 import { HistoryModal } from './HistoryModal';
 import { HelpModal } from './HelpModal';
+import { NewGameModal } from './NewGameModal';
 import { GameState } from '../types';
 import LayoutConfig from '../config.json';
 
@@ -19,7 +20,10 @@ interface GameLayoutProps {
     setIsHistoryOpen: (isOpen: boolean) => void;
     isHelpOpen: boolean;
     setIsHelpOpen: (isOpen: boolean) => void;
+    isNewGameOpen: boolean;
+    setIsNewGameOpen: (isOpen: boolean) => void;
     onLoadGame: () => void;
+    onNewGame: (difficulty: string) => void;
 }
 
 export const GameLayout: React.FC<GameLayoutProps> = ({
@@ -32,7 +36,10 @@ export const GameLayout: React.FC<GameLayoutProps> = ({
     setIsHistoryOpen,
     isHelpOpen,
     setIsHelpOpen,
-    onLoadGame
+    isNewGameOpen,
+    setIsNewGameOpen,
+    onLoadGame,
+    onNewGame
 }) => {
     if (!gameState) {
         return <div className="flex items-center justify-center h-screen text-white">Loading Golden Fox Sudoku...</div>;
@@ -190,6 +197,13 @@ export const GameLayout: React.FC<GameLayoutProps> = ({
             <HelpModal
                 isOpen={isHelpOpen}
                 onClose={() => setIsHelpOpen(false)}
+            />
+
+            <NewGameModal
+                isOpen={isNewGameOpen}
+                onClose={() => setIsNewGameOpen(false)}
+                onSelectDifficulty={onNewGame}
+                userLevel={gameState.userLevel}
             />
 
         </div>

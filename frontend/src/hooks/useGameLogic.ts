@@ -54,7 +54,7 @@ export const useGameLogic = () => {
         }
     };
 
-    const handleGameAction = async (action: string) => {
+    const handleGameAction = async (action: string, difficulty?: string) => {
         if (!gameState) return;
         try {
             switch (action) {
@@ -66,7 +66,7 @@ export const useGameLogic = () => {
                     await ClearCell();
                     break;
                 case 'new':
-                    await NewGame("Easy");
+                    await NewGame(difficulty || "Easy");
                     break;
                 case 'restart':
                     await RestartGame();
