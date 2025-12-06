@@ -140,10 +140,10 @@ func (ud *UserData) UpsertPuzzleRecord(record PuzzleRecord) {
 }
 
 // RecordLoss records a failed or abandoned game
-func (ud *UserData) RecordLoss() {
+func (ud *UserData) RecordLoss(difficulty engine.DifficultyLevel) {
 	ud.mu.Lock()
 	defer ud.mu.Unlock()
-	ud.Stats.RecordLoss()
+	ud.Stats.RecordLoss(difficulty)
 }
 
 // GetPendingGamesCount returns the number of unfinished games in history

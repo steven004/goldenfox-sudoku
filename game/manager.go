@@ -60,28 +60,49 @@ func NewGameManager(generator engine.PuzzleGenerator) *GameManager {
 	}
 }
 
-// NewGame generates and starts a new puzzle based on User Level
-func (gm *GameManager) NewGame(difficulty engine.DifficultyLevel) error {
+// NewGame generates and starts a new puzzle
+// difficultyOverride: optional difficulty string (e.g., "Hard"). If empty, uses User Level.
+func (gm *GameManager) NewGame(difficultyOverride string) error {
 	// Check for abandonment of previous game
 	if gm.currentBoard != nil && !gm.currentBoard.IsSolved() && gm.timer.IsRunning() {
 		// Previous game was in progress and not solved -> Record Loss
-		gm.userData.RecordLoss()
+		gm.userData.RecordLoss(gm.difficulty)
 		// Save the loss state
 		gm.SaveCurrentGame()
 	}
 
-	// Determine difficulty from User Level
-	// Level 1 -> Beginner (0), Level 6 -> FoxGod (5)
-	userLevel := gm.userData.Stats.Level
-	if userLevel < 1 {
-		userLevel = 1
+	var targetDifficulty engine.DifficultyLevel
+
+	if difficultyOverride != "" {
+		// Manual Difficulty Selection
+		switch difficultyOverride {
+		case "Beginner":
+			targetDifficulty = engine.Beginner
+		case "Easy":
+			targetDifficulty = engine.Easy
+		case "Medium":
+			targetDifficulty = engine.Medium
+		case "Hard":
+			targetDifficulty = engine.Hard
+		case "Expert":
+			targetDifficulty = engine.Expert
+		case "FoxGod":
+			targetDifficulty = engine.FoxGod
+		default:
+			// Fallback to User Level if string is invalid
+			targetDifficulty = gm.getDifficultyFromLevel()
+		}
+	} else {
+		// No override -> Use User Level
+		targetDifficulty = gm.getDifficultyFromLevel()
 	}
-	if userLevel > 6 {
-		userLevel = 6
-	}
-	targetDifficulty := engine.DifficultyLevel(userLevel - 1)
 
 	// Determine extra clues based on difficulty and progress
+	// Note: If playing "Up" or "Down", we should technically use the delta.
+	// But for simplicity, we use the User's current progress within their current level
+	// to adjust clues slightly.
+	// Or, if manually selecting, maybe we should DISABLE dynamic clues?
+	// For now, let's keep it simple: Dynamic Clues always apply relative to the DIFFICULTY base.
 	progress := gm.userData.Stats.Progress
 	extraClues := CalculateDynamicClues(targetDifficulty, progress)
 
@@ -119,6 +140,18 @@ func (gm *GameManager) NewGame(difficulty engine.DifficultyLevel) error {
 	gm.currentGameID = fmt.Sprintf("%d", time.Now().UnixNano())
 
 	return nil
+}
+
+// Helper to determine difficulty from User Level
+func (gm *GameManager) getDifficultyFromLevel() engine.DifficultyLevel {
+	userLevel := gm.userData.Stats.Level
+	if userLevel < 1 {
+		userLevel = 1
+	}
+	if userLevel > 6 {
+		userLevel = 6
+	}
+	return engine.DifficultyLevel(userLevel - 1)
 }
 
 // RestartGame resets the current puzzle to its initial state

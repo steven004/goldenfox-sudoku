@@ -44,22 +44,8 @@ func (a *App) startup(ctx context.Context) {
 	// Enforce 1:1 Aspect Ratio (macOS only)
 	SetWindowAspectRatio()
 
-	// Determine difficulty based on user level
-	level := a.gameManager.GetUserLevel()
-	var diff engine.DifficultyLevel
-
-	switch {
-	case level < 5:
-		diff = engine.Beginner
-	case level < 10:
-		diff = engine.Easy
-	case level < 20:
-		diff = engine.Medium
-	case level < 50:
-		diff = engine.Hard
-	default:
-		diff = engine.Expert
-	}
+	// Check legacy difficulty determination logic - we can simplify this now
+	// Since NewGame("") handles the user level default internally.
 
 	// Try to load the last played game (if any)
 	lastGameID := a.gameManager.GetLastGameID()
@@ -72,10 +58,9 @@ func (a *App) startup(ctx context.Context) {
 		}
 	}
 
-	// If no last game or failed to load, start a new one
-	fmt.Printf("Starting initial game for User Level %d (Difficulty: %s)\n", level, diff)
-	if err := a.gameManager.NewGame(diff); err != nil {
-		fmt.Printf("Error starting initial game: %v\n", err)
+	// If loading failed or no last game, start a new one (using default/user level)
+	if err := a.gameManager.NewGame(""); err != nil {
+		fmt.Printf("Startup Warning: Failed to create new game: %v\n", err)
 	}
 }
 
@@ -91,24 +76,8 @@ func (a *App) GetBoard() engine.SudokuBoard {
 
 // NewGame starts a new game with the given difficulty
 func (a *App) NewGame(difficultyStr string) error {
-	var diff engine.DifficultyLevel
-	switch difficultyStr {
-	case "Beginner":
-		diff = engine.Beginner
-	case "Easy":
-		diff = engine.Easy
-	case "Medium":
-		diff = engine.Medium
-	case "Hard":
-		diff = engine.Hard
-	case "Expert":
-		diff = engine.Expert
-	case "FoxGod":
-		diff = engine.FoxGod
-	default:
-		return fmt.Errorf("invalid difficulty: %s", difficultyStr)
-	}
-	return a.gameManager.NewGame(diff)
+	// difficultyStr can be "Hard" or empty "" (to use user level)
+	return a.gameManager.NewGame(difficultyStr)
 }
 
 // RestartGame restarts the current game to its initial state

@@ -65,14 +65,39 @@ func (us *UserStats) UpdateStats(record PuzzleRecord) {
 		us.BestTimes[record.Difficulty] = seconds
 	}
 
-	// Level Up Logic
-	// Win: Progress +1
-	if us.Progress < 0 {
-		us.Progress = 1 // Reset to +1 if coming from negative
+	// Challenger Level Up Logic
+	// Calculate the gap between played difficulty and user level
+	// Beginner(0) vs Level 1 (Beginner) -> Gap 0?
+	// Note: difficulty enum might need int casting or mapping to be comparable to Level (int).
+	// Engine: Beginner=0, Easy=1, but User Level starts at 1.
+	// Let's verify mapping: engine.Beginner(0) -> Level 1.
+	playedLevel := int(record.Difficulty) + 1
+	diffDelta := playedLevel - us.Level
+
+	// BASE PROGRESS
+	progressGain := 1
+
+	if diffDelta > 0 {
+		// Playing "Up" -> Bonus Points
+		// e.g. Lv.1 plays Hard(4) -> Delta = 3 -> Gain = 1 + 3 = 4
+		progressGain += diffDelta
+	} else if diffDelta == 0 {
+		// Playing "Fair" -> Standard Gain (1)
+		progressGain = 1
 	} else {
-		us.Progress++
+		// Playing "Down" (Smurfing) -> No Gain or Reduced Gain
+		// If you are Lv.5 playing Easy(2) -> Delta = -3
+		progressGain = 0
 	}
 
+	// Apply Gain
+	if us.Progress < 0 {
+		us.Progress = progressGain // Reset to positive gain immediately
+	} else {
+		us.Progress += progressGain
+	}
+
+	// Check Promotion
 	if us.Progress >= 5 {
 		if us.Level < 6 { // Max Level 6 (FoxGod)
 			us.Level++
@@ -84,12 +109,31 @@ func (us *UserStats) UpdateStats(record PuzzleRecord) {
 }
 
 // RecordLoss records a failed or abandoned game
-func (us *UserStats) RecordLoss() {
-	// Loss: Progress -1
-	if us.Progress > 0 {
-		us.Progress = -1 // Reset to -1 if coming from positive
+func (us *UserStats) RecordLoss(difficulty engine.DifficultyLevel) {
+	// Calculate Gap
+	playedLevel := int(difficulty) + 1
+	diffDelta := playedLevel - us.Level
+
+	// BASE PENALTY
+	penalty := 1
+
+	if diffDelta >= 0 {
+		// Playing "Up" or "Fair" -> No Penalty or Reduced
+		// If you try Hard and fail, it's okay.
+		penalty = 0
 	} else {
-		us.Progress--
+		// Playing "Down" and failing -> Massive Penalty
+		// Lv.5 loses to Easy -> Embarrassing.
+		penalty = 2
+	}
+
+	// Apply Penalty
+	if penalty > 0 {
+		if us.Progress > 0 {
+			us.Progress = -penalty // Reset to negative immediately
+		} else {
+			us.Progress -= penalty
+		}
 	}
 
 	// Level Down Logic
