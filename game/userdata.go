@@ -13,26 +13,15 @@ import (
 
 // PuzzleRecord represents a single played puzzle
 type PuzzleRecord struct {
-	ID          string                 `json:"id"`
-	Predefined  string                 `json:"predefined"`  // String representation of initial board
-	FinalState  string                 `json:"final_state"` // String representation of final board
-	IsSolved    bool                   `json:"is_solved"`
-	TimeElapsed time.Duration          `json:"time_elapsed"`
-	PlayedAt    time.Time              `json:"played_at"`
-	Difficulty  engine.DifficultyLevel `json:"difficulty"`
-	Mistakes    int                    `json:"mistakes"`
-}
-
-// UserStats holds aggregated statistics for the user
-type UserStats struct {
-	Level        int                                `json:"level"`    // User's experience level (1-6)
-	Progress     int                                `json:"progress"` // -2 to +4 (at +5 level up, at -3 level down)
-	JoinTime     time.Time                          `json:"join_time"`
-	TotalSolved  int                                `json:"total_solved"`
-	BestTimes    map[engine.DifficultyLevel]float64 `json:"best_times"`    // In seconds
-	AverageTimes map[engine.DifficultyLevel]float64 `json:"average_times"` // In seconds
-	TotalTimes   map[engine.DifficultyLevel]float64 `json:"total_times"`   // In seconds (helper for average)
-	SolvedCounts map[engine.DifficultyLevel]int     `json:"solved_counts"` // Helper for average
+	ID              string                 `json:"id"`
+	Predefined      string                 `json:"predefined"`  // String representation of initial board
+	FinalState      string                 `json:"final_state"` // String representation of final board
+	IsSolved        bool                   `json:"is_solved"`
+	TimeElapsed     time.Duration          `json:"time_elapsed"`
+	PlayedAt        time.Time              `json:"played_at"`
+	Difficulty      engine.DifficultyLevel `json:"difficulty"`
+	DifficultyIndex float64                `json:"difficulty_index"`
+	Mistakes        int                    `json:"mistakes"`
 }
 
 // UserData is the root structure for user persistence
@@ -45,15 +34,7 @@ type UserData struct {
 // NewUserData creates a new UserData instance with defaults
 func NewUserData() *UserData {
 	return &UserData{
-		Stats: UserStats{
-			Level:        1,
-			Progress:     0,
-			JoinTime:     time.Now(),
-			BestTimes:    make(map[engine.DifficultyLevel]float64),
-			AverageTimes: make(map[engine.DifficultyLevel]float64),
-			TotalTimes:   make(map[engine.DifficultyLevel]float64),
-			SolvedCounts: make(map[engine.DifficultyLevel]int),
-		},
+		Stats:   NewUserStats(),
 		History: make([]PuzzleRecord, 0),
 	}
 }
@@ -114,6 +95,7 @@ func LoadUserData(filename string) (*UserData, error) {
 		return nil, fmt.Errorf("failed to unmarshal user data: %w", err)
 	}
 
+	// Ensure maps are initialized (in case of loading old data or empty maps)
 	if ud.Stats.BestTimes == nil {
 		ud.Stats.BestTimes = make(map[engine.DifficultyLevel]float64)
 	}
@@ -147,50 +129,12 @@ func (ud *UserData) UpsertPuzzleRecord(record PuzzleRecord) {
 		oldRecord := ud.History[existingIdx]
 		ud.History[existingIdx] = record
 		if !oldRecord.IsSolved && record.IsSolved {
-			ud.updateStats(record)
+			ud.Stats.UpdateStats(record)
 		}
 	} else {
 		ud.History = append(ud.History, record)
 		if record.IsSolved {
-			ud.updateStats(record)
-		}
-	}
-}
-
-// updateStats updates user statistics based on a solved record
-func (ud *UserData) updateStats(record PuzzleRecord) {
-	ud.Stats.TotalSolved++
-	ud.Stats.SolvedCounts[record.Difficulty]++
-
-	seconds := record.TimeElapsed.Seconds()
-
-	// Update Total Time for average calculation
-	ud.Stats.TotalTimes[record.Difficulty] += seconds
-
-	// Recalculate Average
-	count := float64(ud.Stats.SolvedCounts[record.Difficulty])
-	ud.Stats.AverageTimes[record.Difficulty] = ud.Stats.TotalTimes[record.Difficulty] / count
-
-	// Update Best Time
-	currentBest, exists := ud.Stats.BestTimes[record.Difficulty]
-	if !exists || seconds < currentBest {
-		ud.Stats.BestTimes[record.Difficulty] = seconds
-	}
-
-	// Level Up Logic
-	// Win: Progress +1
-	if ud.Stats.Progress < 0 {
-		ud.Stats.Progress = 1 // Reset to +1 if coming from negative
-	} else {
-		ud.Stats.Progress++
-	}
-
-	if ud.Stats.Progress >= 5 {
-		if ud.Stats.Level < 6 { // Max Level 6 (FoxGod)
-			ud.Stats.Level++
-			ud.Stats.Progress = 0 // Reset after promotion
-		} else {
-			ud.Stats.Progress = 5 // Cap at max progress for max level
+			ud.Stats.UpdateStats(record)
 		}
 	}
 }
@@ -199,24 +143,7 @@ func (ud *UserData) updateStats(record PuzzleRecord) {
 func (ud *UserData) RecordLoss() {
 	ud.mu.Lock()
 	defer ud.mu.Unlock()
-
-	// Loss: Progress -1
-	if ud.Stats.Progress > 0 {
-		ud.Stats.Progress = -1 // Reset to -1 if coming from positive
-	} else {
-		ud.Stats.Progress--
-	}
-
-	// Level Down Logic
-	// Fail 3 consecutive games (Progress reaches -3) -> Level Down
-	if ud.Stats.Progress <= -3 {
-		if ud.Stats.Level > 1 { // Min Level 1 (Beginner)
-			ud.Stats.Level--
-			ud.Stats.Progress = 0 // Reset after demotion
-		} else {
-			ud.Stats.Progress = -3 // Cap at min progress for min level
-		}
-	}
+	ud.Stats.RecordLoss()
 }
 
 // GetPendingGamesCount returns the number of unfinished games in history

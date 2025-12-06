@@ -19,6 +19,7 @@ interface StatsPanelProps {
     undoCount: number;
     timeElapsed: string;
     difficulty: string;
+    difficultyIndex: number;
     userLevel: number;
     gamesPlayed: number;
     averageTime: string;
@@ -34,6 +35,7 @@ export const StatsPanel: React.FC<StatsPanelProps> = ({
     undoCount,
     timeElapsed,
     difficulty,
+    difficultyIndex,
     userLevel,
     gamesPlayed,
     averageTime,
@@ -76,7 +78,9 @@ export const StatsPanel: React.FC<StatsPanelProps> = ({
                             <Zap size={14} />
                             <span className="text-xs font-bold uppercase">Diff</span>
                         </div>
-                        <span className="text-lg font-bold text-white">{difficulty}</span>
+                        <span className="text-lg font-bold text-white">
+                            {difficulty} <span className="text-sm text-gray-500">({difficultyIndex.toFixed(1)})</span>
+                        </span>
                     </div>
                     <div className="w-px h-10 bg-white/10" />
                     <div className="flex flex-col items-center gap-1">
@@ -173,10 +177,10 @@ export const StatsPanel: React.FC<StatsPanelProps> = ({
 
                 <div className="flex flex-col gap-1 justify-between flex-grow">
                     <StatRow icon={Gamepad2} label="Total Games" value={gamesPlayed} />
+                    <StatRow icon={Layers} label={`Games (Lv.${userLevel})`} value={currentDifficultyCount} />
                     <StatRow icon={Percent} label="Win Rate" value={`${winRate.toFixed(1)}%`} />
                     <StatRow icon={Hourglass} label="Pending" value={pendingGames} />
                     <StatRow icon={Timer} label="Avg Time" value={averageTime} />
-                    <StatRow icon={Layers} label="Cur Diff" value={currentDifficultyCount} />
                 </div>
             </div>
         </div>

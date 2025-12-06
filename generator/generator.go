@@ -5,6 +5,7 @@ import (
 	"encoding/csv"
 	"fmt"
 	"math/rand"
+	"strconv"
 	"time"
 
 	"github.com/steven004/goldenfox-sudoku/engine"
@@ -12,8 +13,9 @@ import (
 
 // PuzzleData holds the puzzle string and its solution
 type PuzzleData struct {
-	Puzzle   string
-	Solution string
+	Puzzle          string
+	Solution        string
+	DifficultyIndex float64
 }
 
 // PreloadedGenerator implements engine.PuzzleGenerator using pre-loaded puzzles
@@ -81,9 +83,22 @@ func (g *PreloadedGenerator) loadPuzzles(data []byte) error {
 			continue // Skip unknown levels
 		}
 
+		// Parse difficulty index from the 'difficulty' column (index 3)
+		// Assuming the CSV format is: puzzle,solution,clues,difficulty_index,level_name
+		// Wait, the user said "level" column is the float index (e.g. "1.2")?
+		// Let's re-read the CSV format comment: "puzzle,solution,clues,difficulty,level"
+		// Usually 'difficulty' is the float (e.g. 1.2) and 'level' is the name (e.g. Easy).
+		// Let's check the record[3] content.
+
+		var diffIndex float64
+		if val, err := strconv.ParseFloat(record[3], 64); err == nil {
+			diffIndex = val
+		}
+
 		data := PuzzleData{
-			Puzzle:   puzzleStr,
-			Solution: solutionStr,
+			Puzzle:          puzzleStr,
+			Solution:        solutionStr,
+			DifficultyIndex: diffIndex,
 		}
 		g.puzzles[level] = append(g.puzzles[level], data)
 	}
@@ -100,37 +115,30 @@ func (g *PreloadedGenerator) loadPuzzles(data []byte) error {
 }
 
 // Generate returns a random puzzle of the specified difficulty
-func (g *PreloadedGenerator) Generate(difficulty engine.DifficultyLevel) (*engine.SudokuBoard, error) {
-	// Determine the pool to use and extra clues to add
+func (g *PreloadedGenerator) Generate(difficulty engine.DifficultyLevel, extraClues int) (*engine.SudokuBoard, float64, error) {
+	// Determine the pool to use
 	var poolLevel engine.DifficultyLevel
-	var extraClues int
 
 	switch difficulty {
 	case engine.Beginner:
 		poolLevel = engine.Beginner
-		extraClues = 15
 	case engine.Easy:
 		poolLevel = engine.Easy
-		extraClues = 10
 	case engine.Medium:
 		poolLevel = engine.Medium
-		extraClues = 6
 	case engine.Hard:
 		poolLevel = engine.Hard
-		extraClues = 3
 	case engine.Expert:
 		poolLevel = engine.Expert
-		extraClues = 1
 	case engine.FoxGod:
-		poolLevel = engine.Expert // FoxGod uses Expert pool with no help
-		extraClues = 0
+		poolLevel = engine.Expert // FoxGod uses Expert pool
 	default:
-		return nil, fmt.Errorf("unknown difficulty: %s", difficulty.String())
+		return nil, 0, fmt.Errorf("unknown difficulty: %s", difficulty.String())
 	}
 
 	puzzles, ok := g.puzzles[poolLevel]
 	if !ok || len(puzzles) == 0 {
-		return nil, fmt.Errorf("no puzzles available for difficulty: %s", poolLevel.String())
+		return nil, 0, fmt.Errorf("no puzzles available for difficulty: %s", poolLevel.String())
 	}
 
 	// Select a random puzzle
@@ -138,12 +146,12 @@ func (g *PreloadedGenerator) Generate(difficulty engine.DifficultyLevel) (*engin
 	puzzleData := puzzles[index]
 
 	fmt.Printf("Generator: Requesting %s difficulty (Pool: %s, Extra Clues: %d)\n", difficulty.String(), poolLevel.String(), extraClues)
-	fmt.Printf("Generator: Selected puzzle index %d\n", index)
+	fmt.Printf("Generator: Selected puzzle index %d (Diff: %.2f)\n", index, puzzleData.DifficultyIndex)
 
 	// Parse the puzzle string into a SudokuBoard
 	board, err := parsePuzzleString(puzzleData.Puzzle)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse puzzle: %w", err)
+		return nil, 0, fmt.Errorf("failed to parse puzzle: %w", err)
 	}
 
 	// Add extra clues if needed
@@ -164,7 +172,7 @@ func (g *PreloadedGenerator) Generate(difficulty engine.DifficultyLevel) (*engin
 	}
 	fmt.Printf("Generator: Puzzle has %d clues (Original + Extra)\n", clueCount)
 
-	return board, nil
+	return board, puzzleData.DifficultyIndex, nil
 }
 
 // addExtraClues reveals N random empty cells using the solution

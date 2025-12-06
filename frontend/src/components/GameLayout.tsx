@@ -167,6 +167,7 @@ export const GameLayout: React.FC<GameLayoutProps> = ({
                             undoCount={gameState.undoCount}
                             timeElapsed={formatTime(timerSeconds)}
                             difficulty={gameState.difficulty}
+                            difficultyIndex={gameState.difficultyIndex}
                             userLevel={gameState.userLevel}
                             gamesPlayed={gameState.gamesPlayed}
                             averageTime={gameState.averageTime}

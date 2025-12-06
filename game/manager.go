@@ -9,26 +9,28 @@ import (
 
 // GameManager manages the game state and coordinates gameplay
 type GameManager struct {
-	currentBoard *engine.SudokuBoard
-	initialBoard *engine.SudokuBoard
-	generator    engine.PuzzleGenerator
-	difficulty   engine.DifficultyLevel
-	selectedRow  int
-	selectedCol  int
-	pencilMode   bool
+	// Game Components
+	timer     *GameTimer
+	history   *HistoryManager
+	generator engine.PuzzleGenerator
+	userData  *UserData
+
+	// Game State
+	initialBoard    *engine.SudokuBoard
+	currentBoard    *engine.SudokuBoard
+	difficulty      engine.DifficultyLevel
+	difficultyIndex float64 // Specific difficulty index (e.g. 1.2)
+	currentGameID   string
+
+	// Selection State
+	selectedRow int
+	selectedCol int
+	pencilMode  bool
 
 	// Conflict State
 	conflictRow   int
 	conflictCol   int
 	conflictValue int
-
-	// Components
-	timer   *GameTimer
-	history *HistoryManager
-
-	// User Data
-	userData      *UserData
-	currentGameID string
 
 	// Limits
 	eraseCount int
@@ -79,8 +81,12 @@ func (gm *GameManager) NewGame(difficulty engine.DifficultyLevel) error {
 	}
 	targetDifficulty := engine.DifficultyLevel(userLevel - 1)
 
+	// Determine extra clues based on difficulty and progress
+	progress := gm.userData.Stats.Progress
+	extraClues := CalculateDynamicClues(targetDifficulty, progress)
+
 	// Generate a new puzzle
-	puzzle, err := gm.generator.Generate(targetDifficulty)
+	puzzle, diffIndex, err := gm.generator.Generate(targetDifficulty, extraClues)
 	if err != nil {
 		return fmt.Errorf("failed to generate puzzle: %w", err)
 	}
@@ -91,8 +97,9 @@ func (gm *GameManager) NewGame(difficulty engine.DifficultyLevel) error {
 	// Set current board
 	gm.currentBoard = puzzle
 
-	// Store difficulty
+	// Store difficulty and index
 	gm.difficulty = targetDifficulty
+	gm.difficultyIndex = diffIndex
 
 	// Reset selection
 	gm.selectedRow = -1
@@ -407,14 +414,15 @@ func (gm *GameManager) SaveCurrentGame() error {
 	elapsed := gm.timer.GetElapsedDuration()
 
 	record := PuzzleRecord{
-		ID:          gm.currentGameID,
-		Predefined:  gm.initialBoard.String(),
-		FinalState:  gm.currentBoard.String(),
-		IsSolved:    gm.currentBoard.IsSolved(),
-		TimeElapsed: elapsed,
-		PlayedAt:    time.Now(),
-		Difficulty:  gm.difficulty,
-		Mistakes:    0, // TODO: Track mistakes
+		ID:              gm.currentGameID,
+		Predefined:      gm.initialBoard.String(),
+		FinalState:      gm.currentBoard.String(),
+		IsSolved:        gm.currentBoard.IsSolved(),
+		TimeElapsed:     elapsed,
+		PlayedAt:        time.Now(),
+		Difficulty:      gm.difficulty,
+		DifficultyIndex: gm.difficultyIndex, // Added: Save difficulty index
+		Mistakes:        0,                  // TODO: Track mistakes
 	}
 
 	// Use Upsert to handle both new and existing records + stats
@@ -466,7 +474,8 @@ func (gm *GameManager) LoadGame(id string) error {
 	gm.initialBoard = initial
 	gm.currentBoard = current
 	gm.difficulty = record.Difficulty
-	gm.currentGameID = record.ID // Set current ID to loaded ID
+	gm.difficultyIndex = record.DifficultyIndex // Added: Load difficulty index
+	gm.currentGameID = record.ID                // Set current ID to loaded ID
 
 	// Restore Timer
 	// We want to resume from where we left off.
@@ -570,6 +579,7 @@ func (gm *GameManager) GetGameState() GameState {
 		UndoCount:              gm.undoCount,
 		ElapsedSeconds:         int(gm.timer.GetElapsedDuration().Seconds()),
 		Difficulty:             gm.difficulty.String(),
+		DifficultyIndex:        gm.difficultyIndex,
 		IsSolved:               gm.currentBoard != nil && gm.currentBoard.IsSolved(),
 		UserLevel:              level,
 		GamesPlayed:            gamesPlayed,

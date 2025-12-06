@@ -64,6 +64,7 @@ export namespace game {
 	    undoCount: number;
 	    elapsedSeconds: number;
 	    difficulty: string;
+	    difficultyIndex: number;
 	    isSolved: boolean;
 	    userLevel: number;
 	    gamesPlayed: number;
@@ -90,6 +91,7 @@ export namespace game {
 	        this.undoCount = source["undoCount"];
 	        this.elapsedSeconds = source["elapsedSeconds"];
 	        this.difficulty = source["difficulty"];
+	        this.difficultyIndex = source["difficultyIndex"];
 	        this.isSolved = source["isSolved"];
 	        this.userLevel = source["userLevel"];
 	        this.gamesPlayed = source["gamesPlayed"];
@@ -128,6 +130,7 @@ export namespace game {
 	    // Go type: time
 	    played_at: any;
 	    difficulty: number;
+	    difficulty_index: number;
 	    mistakes: number;
 	
 	    static createFrom(source: any = {}) {
@@ -143,6 +146,7 @@ export namespace game {
 	        this.time_elapsed = source["time_elapsed"];
 	        this.played_at = this.convertValues(source["played_at"], null);
 	        this.difficulty = source["difficulty"];
+	        this.difficulty_index = source["difficulty_index"];
 	        this.mistakes = source["mistakes"];
 	    }
 	

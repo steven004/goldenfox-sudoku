@@ -20,6 +20,7 @@ export interface GameState {
     undoCount: number;
     elapsedSeconds: number;
     difficulty: string;
+    difficultyIndex: number;
     isSolved: boolean;
     userLevel: number;
     gamesPlayed: number;

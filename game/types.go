@@ -4,17 +4,18 @@ import "github.com/steven004/goldenfox-sudoku/engine"
 
 // GameState represents the comprehensive state object for the UI
 type GameState struct {
-	Board          engine.SudokuBoard `json:"board"`
-	SelectedRow    int                `json:"selectedRow"`
-	SelectedCol    int                `json:"selectedCol"`
-	IsSelected     bool               `json:"isSelected"`
-	PencilMode     bool               `json:"pencilMode"`
-	Mistakes       int                `json:"mistakes"`
-	EraseCount     int                `json:"eraseCount"`
-	UndoCount      int                `json:"undoCount"`
-	ElapsedSeconds int                `json:"elapsedSeconds"` // in seconds
-	Difficulty     string             `json:"difficulty"`
-	IsSolved       bool               `json:"isSolved"`
+	Board           engine.SudokuBoard `json:"board"`
+	SelectedRow     int                `json:"selectedRow"`
+	SelectedCol     int                `json:"selectedCol"`
+	IsSelected      bool               `json:"isSelected"`
+	PencilMode      bool               `json:"pencilMode"`
+	Mistakes        int                `json:"mistakes"`
+	EraseCount      int                `json:"eraseCount"`
+	UndoCount       int                `json:"undoCount"`
+	ElapsedSeconds  int                `json:"elapsedSeconds"` // in seconds
+	Difficulty      string             `json:"difficulty"`
+	DifficultyIndex float64            `json:"difficultyIndex"`
+	IsSolved        bool               `json:"isSolved"`
 	// User Stats
 	UserLevel              int     `json:"userLevel"`
 	GamesPlayed            int     `json:"gamesPlayed"`
