@@ -3,12 +3,13 @@ import { GameState } from '../types';
 
 interface KeyboardProps {
     gameState: GameState | null;
+    selection: { row: number, col: number };
     onCellMove: (row: number, col: number) => void;
     onNumberInput: (num: number, forcePencil?: boolean) => void;
     onAction: (action: string) => void;
 }
 
-export const useKeyboard = ({ gameState, onCellMove, onNumberInput, onAction }: KeyboardProps) => {
+export const useKeyboard = ({ gameState, selection, onCellMove, onNumberInput, onAction }: KeyboardProps) => {
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
             if (!gameState || gameState.isSolved) return;
@@ -20,7 +21,7 @@ export const useKeyboard = ({ gameState, onCellMove, onNumberInput, onAction }: 
 
             // --- 1. Selection Navigation (Arrows) ---
             if (e.key.startsWith('Arrow')) {
-                let { selectedRow, selectedCol } = gameState;
+                const { row: selectedRow, col: selectedCol } = selection;
 
                 // If nothing selected, start at center (4,4)
                 if (selectedRow === -1 || selectedCol === -1) {
@@ -83,5 +84,5 @@ export const useKeyboard = ({ gameState, onCellMove, onNumberInput, onAction }: 
 
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [gameState, onCellMove, onNumberInput, onAction]);
+    }, [gameState, selection, onCellMove, onNumberInput, onAction]);
 };

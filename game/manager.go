@@ -22,10 +22,6 @@ type GameManager struct {
 	difficultyIndex float64 // Specific difficulty index (e.g. 1.2)
 	currentGameID   string
 
-	// Selection State
-	selectedRow int
-	selectedCol int
-
 	// Conflict State
 	conflictRow   int
 	conflictCol   int
@@ -46,9 +42,8 @@ func NewGameManager(generator engine.PuzzleGenerator) *GameManager {
 	}
 
 	return &GameManager{
-		generator:     generator,
-		selectedRow:   4, // Start at center
-		selectedCol:   4, // Start at center
+		generator: generator,
+
 		conflictRow:   -1,
 		conflictCol:   -1,
 		conflictValue: 0,
@@ -120,9 +115,6 @@ func (gm *GameManager) NewGame(difficultyOverride string) error {
 	gm.difficulty = targetDifficulty
 	gm.difficultyIndex = diffIndex
 
-	// Reset selection to Center (4,4)
-	gm.selectedRow = 4
-	gm.selectedCol = 4
 	gm.ResetConflict()
 
 	// Reset Timer
@@ -160,9 +152,6 @@ func (gm *GameManager) RestartGame() error {
 	// Clone the initial board
 	gm.currentBoard = gm.initialBoard.Clone()
 
-	// Reset selection to Center (4,4) and mode
-	gm.selectedRow = 4
-	gm.selectedCol = 4
 	gm.ResetConflict()
 
 	// Reset Timer
@@ -196,42 +185,18 @@ func (gm *GameManager) GetConflictInfo() (row, col, val int, hasConflict bool) {
 	return gm.conflictRow, gm.conflictCol, gm.conflictValue, true
 }
 
-// SelectCell sets the currently selected cell
-func (gm *GameManager) SelectCell(row, col int) error {
-	if row < 0 || row > 8 || col < 0 || col > 8 {
-		return fmt.Errorf("invalid cell position: [%d][%d]", row, col)
-	}
-
-	gm.selectedRow = row
-	gm.selectedCol = col
-	return nil
-}
-
-// GetSelectedCell returns the currently selected cell coordinates
-func (gm *GameManager) GetSelectedCell() (row, col int, hasSelection bool) {
-	if gm.selectedRow == -1 || gm.selectedCol == -1 {
-		return 0, 0, false
-	}
-	return gm.selectedRow, gm.selectedCol, true
-}
-
-// ClearSelection clears the current cell selection
-func (gm *GameManager) ClearSelection() {
-	gm.selectedRow = -1
-	gm.selectedCol = -1
-}
-
 // InputNumber attempts to input a number into the selected cell (Pen Mode)
-func (gm *GameManager) InputNumber(val int) error {
-	if gm.selectedRow == -1 || gm.selectedCol == -1 {
-		return fmt.Errorf("no cell selected")
-	}
-
+// Now accepts coordinates directly.
+func (gm *GameManager) InputNumber(row, col, val int) error {
 	if gm.currentBoard == nil {
 		return fmt.Errorf("no game in progress")
 	}
 
-	cell := &gm.currentBoard.Cells[gm.selectedRow][gm.selectedCol]
+	if row < 0 || row > 8 || col < 0 || col > 8 {
+		return fmt.Errorf("invalid position: [%d][%d]", row, col)
+	}
+
+	cell := &gm.currentBoard.Cells[row][col]
 
 	// Cannot edit given cells
 	if cell.Given {
@@ -252,11 +217,11 @@ func (gm *GameManager) InputNumber(val int) error {
 	}
 
 	// Valdation/Stats Logic
-	isValid := gm.currentBoard.IsValidMove(gm.selectedRow, gm.selectedCol, val)
+	isValid := gm.currentBoard.IsValidMove(row, col, val)
 
 	if isValid {
 		// Valid move
-		gm.currentBoard.RemoveCandidateFromPeers(gm.selectedRow, gm.selectedCol, val)
+		gm.currentBoard.RemoveCandidateFromPeers(row, col, val)
 		gm.ResetConflict()
 
 		// Check for win
@@ -270,8 +235,8 @@ func (gm *GameManager) InputNumber(val int) error {
 		}
 	} else {
 		// Invalid
-		gm.conflictRow = gm.selectedRow
-		gm.conflictCol = gm.selectedCol
+		gm.conflictRow = row
+		gm.conflictCol = col
 		gm.conflictValue = val
 	}
 
@@ -279,16 +244,16 @@ func (gm *GameManager) InputNumber(val int) error {
 }
 
 // ToggleCandidate toggles a candidate note in the selected cell
-func (gm *GameManager) ToggleCandidate(val int) error {
-	if gm.selectedRow == -1 || gm.selectedCol == -1 {
-		return fmt.Errorf("no cell selected")
-	}
-
+func (gm *GameManager) ToggleCandidate(row, col, val int) error {
 	if gm.currentBoard == nil {
 		return fmt.Errorf("no game in progress")
 	}
 
-	cell := &gm.currentBoard.Cells[gm.selectedRow][gm.selectedCol]
+	if row < 0 || row > 8 || col < 0 || col > 8 {
+		return fmt.Errorf("invalid position: [%d][%d]", row, col)
+	}
+
+	cell := &gm.currentBoard.Cells[row][col]
 
 	// Cannot edit given cells
 	if cell.Given {
@@ -313,71 +278,6 @@ func (gm *GameManager) ToggleCandidate(val int) error {
 	}
 
 	go gm.SaveCurrentGame()
-
-	return nil
-}
-
-// InputNumberAt places a number or pencil note at the specified position
-// logic from InputNumber(row, col, val) moved here
-func (gm *GameManager) InputNumberAt(row, col, val int) error {
-	if gm.currentBoard == nil {
-		return fmt.Errorf("no game in progress")
-	}
-
-	if row < 0 || row > 8 || col < 0 || col > 8 {
-		return fmt.Errorf("invalid position: [%d][%d]", row, col)
-	}
-
-	if val < 1 || val > 9 {
-		return fmt.Errorf("invalid value: %d (must be 1-9)", val)
-	}
-
-	// Check if cell is given
-	if gm.currentBoard.Cells[row][col].Given {
-		return fmt.Errorf("cannot modify given cell at [%d][%d]", row, col)
-	}
-
-	// Check if already solved
-	if !gm.timer.IsRunning() && gm.currentBoard.IsSolved() {
-		return nil
-	}
-
-	// LOCKOUT LOGIC
-	if gm.conflictRow != -1 {
-		if row != gm.conflictRow || col != gm.conflictCol {
-			return fmt.Errorf("must resolve conflict at [%d][%d] first", gm.conflictRow+1, gm.conflictCol+1)
-		}
-	}
-
-	// This method handles direct input (Pen Mode)
-
-	// Check validity
-	isValid := gm.currentBoard.IsValidMove(row, col, val)
-
-	if isValid {
-		// Valid move
-		gm.history.Push(gm.currentBoard)
-
-		if err := gm.currentBoard.SetValue(row, col, val); err != nil {
-			return err
-		}
-		gm.currentBoard.RemoveCandidateFromPeers(row, col, val)
-		gm.ResetConflict()
-
-		if gm.currentBoard.IsSolved() {
-			gm.timer.Stop()
-			if err := gm.SaveCurrentGame(); err != nil {
-				fmt.Printf("Error auto-saving game: %v\n", err)
-			}
-		} else {
-			go gm.SaveCurrentGame()
-		}
-	} else {
-		// Invalid move
-		gm.conflictRow = row
-		gm.conflictCol = col
-		gm.conflictValue = val
-	}
 
 	return nil
 }
@@ -596,8 +496,6 @@ func (gm *GameManager) GetGameState() GameState {
 		}
 	}
 
-	selected := gm.selectedRow != -1 && gm.selectedCol != -1
-
 	// Get stats safely
 	level := 1
 	gamesPlayed := 0
@@ -642,9 +540,6 @@ func (gm *GameManager) GetGameState() GameState {
 
 	return GameState{
 		Board:                  board,
-		SelectedRow:            gm.selectedRow,
-		SelectedCol:            gm.selectedCol,
-		IsSelected:             selected,
 		Mistakes:               0,
 		EraseCount:             gm.eraseCount,
 		UndoCount:              gm.undoCount,

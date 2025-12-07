@@ -1,11 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
 import { GameState } from '../types';
-import { GetGameState, SelectCell, InputNumber, ToggleCandidate, NewGame, ClearCell, RestartGame, Undo } from '../../wailsjs/go/main/App';
+import { GetGameState, InputNumber, ToggleCandidate, NewGame, ClearCell, RestartGame, Undo } from '../../wailsjs/go/main/App';
 
 export const useGameLogic = () => {
     const [gameState, setGameState] = useState<GameState | null>(null);
     const [timerSeconds, setTimerSeconds] = useState(0);
     const [pencilMode, setPencilMode] = useState(false);
+    const [selection, setSelection] = useState({ row: 4, col: 4 });
 
     const refreshState = useCallback(() => {
         GetGameState().then((state: any) => {
@@ -36,22 +37,21 @@ export const useGameLogic = () => {
         refreshState();
     }, [refreshState]);
 
-    const handleCellClick = async (row: number, col: number) => {
-        try {
-            await SelectCell(row, col);
-            refreshState();
-        } catch (err) {
-            console.error(err);
-        }
+    const handleCellClick = (row: number, col: number) => {
+        setSelection({ row, col });
+        // No backend call needed
     };
 
     const handleNumberClick = async (num: number, forcePencil: boolean = false) => {
         try {
+            const { row, col } = selection;
+            if (row === -1 || col === -1) return;
+
             const isNote = forcePencil || pencilMode;
             if (isNote) {
-                await ToggleCandidate(num);
+                await ToggleCandidate(row, col, num);
             } else {
-                await InputNumber(num);
+                await InputNumber(row, col, num);
             }
             refreshState();
             setTimeout(refreshState, 50);
@@ -69,15 +69,19 @@ export const useGameLogic = () => {
                     break;
                 case 'eraser':
                     if (gameState.isSolved) return;
-                    await ClearCell();
-                    refreshState();
+                    if (selection.row !== -1 && selection.col !== -1) {
+                        await ClearCell(selection.row, selection.col);
+                        refreshState();
+                    }
                     break;
                 case 'new':
                     await NewGame(difficulty || "Easy");
+                    setSelection({ row: 4, col: 4 });
                     refreshState();
                     break;
                 case 'restart':
                     await RestartGame();
+                    setSelection({ row: 4, col: 4 });
                     refreshState();
                     break;
                 case 'undo':
@@ -95,6 +99,7 @@ export const useGameLogic = () => {
         gameState,
         timerSeconds,
         pencilMode,
+        selection,
         refreshState,
         handleCellClick,
         handleNumberClick,

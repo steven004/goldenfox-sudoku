@@ -9,6 +9,7 @@ function App() {
         gameState,
         timerSeconds,
         pencilMode,
+        selection,
         refreshState,
         handleCellClick,
         handleNumberClick,
@@ -38,6 +39,7 @@ function App() {
     // Keyboard Controls
     useKeyboard({
         gameState,
+        selection,
         onCellMove: handleCellClick,
         onNumberInput: handleNumberClick,
         onAction: handleActionClick
@@ -48,6 +50,7 @@ function App() {
             gameState={gameState}
             timerSeconds={timerSeconds}
             pencilMode={pencilMode}
+            selection={selection}
             onCellClick={handleCellClick}
             onNumberClick={handleNumberClick}
             onActionClick={handleActionClick}

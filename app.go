@@ -85,19 +85,14 @@ func (a *App) RestartGame() error {
 	return a.gameManager.RestartGame()
 }
 
-// SelectCell selects a cell at the given row and column
-func (a *App) SelectCell(row, col int) {
-	a.gameManager.SelectCell(row, col)
+// InputNumber inputs a number into the specified cell (Value)
+func (a *App) InputNumber(row, col, val int) error {
+	return a.gameManager.InputNumber(row, col, val)
 }
 
-// InputNumber inputs a number into the selected cell (Value)
-func (a *App) InputNumber(val int) error {
-	return a.gameManager.InputNumber(val)
-}
-
-// ToggleCandidate toggles a candidate note in the selected cell
-func (a *App) ToggleCandidate(val int) error {
-	return a.gameManager.ToggleCandidate(val)
+// ToggleCandidate toggles a candidate note in the specified cell
+func (a *App) ToggleCandidate(row, col, val int) error {
+	return a.gameManager.ToggleCandidate(row, col, val)
 }
 
 // LoadGame loads a specific game from history
@@ -115,12 +110,8 @@ func (a *App) GetGameState() game.GameState {
 	return a.gameManager.GetGameState()
 }
 
-// ClearCell clears the selected cell
-func (a *App) ClearCell() error {
-	row, col, selected := a.gameManager.GetSelectedCell()
-	if !selected {
-		return fmt.Errorf("no cell selected")
-	}
+// ClearCell clears the specified cell
+func (a *App) ClearCell(row, col int) error {
 	return a.gameManager.ClearCell(row, col)
 }
 

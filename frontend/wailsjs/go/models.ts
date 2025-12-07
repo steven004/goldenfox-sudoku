@@ -55,9 +55,6 @@ export namespace game {
 	
 	export class GameState {
 	    board: engine.SudokuBoard;
-	    selectedRow: number;
-	    selectedCol: number;
-	    isSelected: boolean;
 	    mistakes: number;
 	    eraseCount: number;
 	    undoCount: number;
@@ -81,9 +78,6 @@ export namespace game {
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.board = this.convertValues(source["board"], engine.SudokuBoard);
-	        this.selectedRow = source["selectedRow"];
-	        this.selectedCol = source["selectedCol"];
-	        this.isSelected = source["isSelected"];
 	        this.mistakes = source["mistakes"];
 	        this.eraseCount = source["eraseCount"];
 	        this.undoCount = source["undoCount"];

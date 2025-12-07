@@ -3,7 +3,7 @@
 import {engine} from '../models';
 import {game} from '../models';
 
-export function ClearCell():Promise<void>;
+export function ClearCell(arg1:number,arg2:number):Promise<void>;
 
 export function GetBoard():Promise<engine.SudokuBoard>;
 
@@ -11,7 +11,7 @@ export function GetGameState():Promise<game.GameState>;
 
 export function GetHistory():Promise<Array<game.PuzzleRecord>>;
 
-export function InputNumber(arg1:number):Promise<void>;
+export function InputNumber(arg1:number,arg2:number,arg3:number):Promise<void>;
 
 export function LoadGame(arg1:string):Promise<void>;
 
@@ -21,8 +21,6 @@ export function RestartGame():Promise<void>;
 
 export function SaveGame():Promise<void>;
 
-export function SelectCell(arg1:number,arg2:number):Promise<void>;
-
-export function ToggleCandidate(arg1:number):Promise<void>;
+export function ToggleCandidate(arg1:number,arg2:number,arg3:number):Promise<void>;
 
 export function Undo():Promise<void>;
