@@ -23,6 +23,6 @@ export function SaveGame():Promise<void>;
 
 export function SelectCell(arg1:number,arg2:number):Promise<void>;
 
-export function TogglePencilMode():Promise<boolean>;
+export function ToggleCandidate(arg1:number):Promise<void>;
 
 export function Undo():Promise<void>;

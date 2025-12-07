@@ -90,13 +90,14 @@ func (a *App) SelectCell(row, col int) {
 	a.gameManager.SelectCell(row, col)
 }
 
-// InputNumber inputs a number into the selected cell
+// InputNumber inputs a number into the selected cell (Value)
 func (a *App) InputNumber(val int) error {
-	row, col, selected := a.gameManager.GetSelectedCell()
-	if !selected {
-		return fmt.Errorf("no cell selected")
-	}
-	return a.gameManager.InputNumber(row, col, val)
+	return a.gameManager.InputNumber(val)
+}
+
+// ToggleCandidate toggles a candidate note in the selected cell
+func (a *App) ToggleCandidate(val int) error {
+	return a.gameManager.ToggleCandidate(val)
 }
 
 // LoadGame loads a specific game from history
@@ -107,12 +108,6 @@ func (a *App) LoadGame(id string) error {
 // SaveGame saves the current game progress
 func (a *App) SaveGame() error {
 	return a.gameManager.SaveCurrentGame()
-}
-
-// TogglePencilMode toggles the pencil mode
-func (a *App) TogglePencilMode() bool {
-	a.gameManager.TogglePencilMode()
-	return a.gameManager.IsPencilMode()
 }
 
 // GetGameState returns a comprehensive state object for the UI

@@ -1,12 +1,14 @@
 import { useState } from 'react';
 import { useGameLogic } from './hooks/useGameLogic';
 import { useConfetti } from './hooks/useConfetti';
+import { useKeyboard } from './hooks/useKeyboard';
 import { GameLayout } from './components/GameLayout';
 
 function App() {
     const {
         gameState,
         timerSeconds,
+        pencilMode,
         refreshState,
         handleCellClick,
         handleNumberClick,
@@ -30,22 +32,22 @@ function App() {
     };
 
     const handleNewGame = (difficulty: string) => {
-        // We route this through handleGameAction ('new') but now we need to pass diff.
-        // wait, handleGameAction in useGameLogic uses StartNewGame() which matches standard behavior.
-        // We need to call the SPECIFIC NewGame(diff) backend logic.
-        // Let's modify useGameLogic or just call StartNewGame(diff) if we update it?
-        // Actually, handleGameAction('new') was just calling the internal logic.
-        // Let's call the backend directly or via a new hook method.
-        // StartNewGame is exposed by Wails as main.NewGame(diff).
-        // Let's check useGameLogic.
-        // For now, I will assume useGameLogic needs an update OR I can call the window.go.main.App.NewGame directly here.
-        // Better: Update useGameLogic to support difficulty.
+        // ... (existing logic commented out in previous turn, actually not needed if using handleActionClick 'new') ...
     };
+
+    // Keyboard Controls
+    useKeyboard({
+        gameState,
+        onCellMove: handleCellClick,
+        onNumberInput: handleNumberClick,
+        onAction: handleActionClick
+    });
 
     return (
         <GameLayout
             gameState={gameState}
             timerSeconds={timerSeconds}
+            pencilMode={pencilMode}
             onCellClick={handleCellClick}
             onNumberClick={handleNumberClick}
             onActionClick={handleActionClick}

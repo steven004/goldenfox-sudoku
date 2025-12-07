@@ -8,7 +8,6 @@ type GameState struct {
 	SelectedRow     int                `json:"selectedRow"`
 	SelectedCol     int                `json:"selectedCol"`
 	IsSelected      bool               `json:"isSelected"`
-	PencilMode      bool               `json:"pencilMode"`
 	Mistakes        int                `json:"mistakes"`
 	EraseCount      int                `json:"eraseCount"`
 	UndoCount       int                `json:"undoCount"`

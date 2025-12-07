@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { GameState } from '../types';
-import { GetGameState, SelectCell, InputNumber, TogglePencilMode, NewGame, ClearCell, RestartGame, Undo } from '../../wailsjs/go/main/App';
+import { GetGameState, SelectCell, InputNumber, ToggleCandidate, NewGame, ClearCell, RestartGame, Undo } from '../../wailsjs/go/main/App';
 
 export const useGameLogic = () => {
     const [gameState, setGameState] = useState<GameState | null>(null);
     const [timerSeconds, setTimerSeconds] = useState(0);
+    const [pencilMode, setPencilMode] = useState(false);
 
     const refreshState = useCallback(() => {
         GetGameState().then((state: any) => {
@@ -12,7 +13,7 @@ export const useGameLogic = () => {
         }).catch(err => console.error("Failed to get game state:", err));
     }, []);
 
-    // Sync local timer with backend state when it updates
+    // Sync local timer with backend state
     useEffect(() => {
         if (gameState) {
             setTimerSeconds(gameState.elapsedSeconds);
@@ -44,9 +45,14 @@ export const useGameLogic = () => {
         }
     };
 
-    const handleNumberClick = async (num: number) => {
+    const handleNumberClick = async (num: number, forcePencil: boolean = false) => {
         try {
-            await InputNumber(num);
+            const isNote = forcePencil || pencilMode;
+            if (isNote) {
+                await ToggleCandidate(num);
+            } else {
+                await InputNumber(num);
+            }
             refreshState();
             setTimeout(refreshState, 50);
         } catch (err) {
@@ -59,24 +65,27 @@ export const useGameLogic = () => {
         try {
             switch (action) {
                 case 'pencil':
-                    await TogglePencilMode();
+                    setPencilMode(prev => !prev);
                     break;
                 case 'eraser':
                     if (gameState.isSolved) return;
                     await ClearCell();
+                    refreshState();
                     break;
                 case 'new':
                     await NewGame(difficulty || "Easy");
+                    refreshState();
                     break;
                 case 'restart':
                     await RestartGame();
+                    refreshState();
                     break;
                 case 'undo':
                     if (gameState.isSolved) return;
                     await Undo();
+                    refreshState();
                     break;
             }
-            refreshState();
         } catch (err) {
             console.error(err);
         }
@@ -85,9 +94,10 @@ export const useGameLogic = () => {
     return {
         gameState,
         timerSeconds,
+        pencilMode,
         refreshState,
         handleCellClick,
         handleNumberClick,
-        handleGameAction
+        handleGameAction,
     };
 };

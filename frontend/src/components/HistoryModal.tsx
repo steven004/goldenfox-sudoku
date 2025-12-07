@@ -114,12 +114,23 @@ export const HistoryModal = ({ isOpen, onClose, onLoadGame }: HistoryModalProps)
                             <div key={record.id} className="bg-white/5 rounded-lg p-4 flex items-center justify-between hover:bg-white/10 transition-colors border border-white/5">
                                 <div>
                                     <div className="flex items-center gap-3 mb-1">
-                                        <span className={`text-xs font-bold px-2 py-0.5 rounded ${record.difficulty === 0 ? 'bg-green-500/20 text-green-400' :
-                                            record.difficulty === 1 ? 'bg-yellow-500/20 text-yellow-400' :
-                                                'bg-red-500/20 text-red-400'
-                                            }`}>
-                                            {record.difficulty === 0 ? 'EASY' : record.difficulty === 1 ? 'MEDIUM' : 'HARD'}
-                                        </span>
+                                        {(() => {
+                                            const diffMap: { [key: number]: { label: string, color: string } } = {
+                                                0: { label: 'BEGINNER', color: 'bg-green-500/20 text-green-400' },
+                                                1: { label: 'EASY', color: 'bg-blue-400/20 text-blue-400' },
+                                                2: { label: 'MEDIUM', color: 'bg-yellow-500/20 text-yellow-400' },
+                                                3: { label: 'HARD', color: 'bg-orange-500/20 text-orange-400' },
+                                                4: { label: 'EXPERT', color: 'bg-red-500/20 text-red-500' },
+                                                5: { label: 'FOX GOD', color: 'bg-purple-500/20 text-purple-400' }
+                                            };
+                                            // Default to Beginner/Unknown if out of range, but should cover all
+                                            const info = diffMap[record.difficulty] || { label: 'UNKNOWN', color: 'bg-gray-500/20 text-gray-400' };
+                                            return (
+                                                <span className={`text-xs font-bold px-2 py-0.5 rounded ${info.color}`}>
+                                                    {info.label}
+                                                </span>
+                                            );
+                                        })()}
                                         <span className="text-white/50 text-xs">{formatDate(record.played_at as any)}</span>
                                     </div>
                                     <div className="text-white font-mono text-lg">

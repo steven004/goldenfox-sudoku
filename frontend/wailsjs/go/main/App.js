@@ -42,8 +42,8 @@ export function SelectCell(arg1, arg2) {
   return window['go']['main']['App']['SelectCell'](arg1, arg2);
 }
 
-export function TogglePencilMode() {
-  return window['go']['main']['App']['TogglePencilMode']();
+export function ToggleCandidate(arg1) {
+  return window['go']['main']['App']['ToggleCandidate'](arg1);
 }
 
 export function Undo() {

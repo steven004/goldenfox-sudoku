@@ -58,7 +58,6 @@ export namespace game {
 	    selectedRow: number;
 	    selectedCol: number;
 	    isSelected: boolean;
-	    pencilMode: boolean;
 	    mistakes: number;
 	    eraseCount: number;
 	    undoCount: number;
@@ -85,7 +84,6 @@ export namespace game {
 	        this.selectedRow = source["selectedRow"];
 	        this.selectedCol = source["selectedCol"];
 	        this.isSelected = source["isSelected"];
-	        this.pencilMode = source["pencilMode"];
 	        this.mistakes = source["mistakes"];
 	        this.eraseCount = source["eraseCount"];
 	        this.undoCount = source["undoCount"];

@@ -24,6 +24,7 @@ interface GameLayoutProps {
     setIsNewGameOpen: (isOpen: boolean) => void;
     onLoadGame: () => void;
     onNewGame: (difficulty: string) => void;
+    pencilMode: boolean;
 }
 
 export const GameLayout: React.FC<GameLayoutProps> = ({
@@ -39,7 +40,8 @@ export const GameLayout: React.FC<GameLayoutProps> = ({
     isNewGameOpen,
     setIsNewGameOpen,
     onLoadGame,
-    onNewGame
+    onNewGame,
+    pencilMode
 }) => {
     if (!gameState) {
         return <div className="flex items-center justify-center h-screen text-white">Loading Golden Fox Sudoku...</div>;
@@ -140,7 +142,7 @@ export const GameLayout: React.FC<GameLayoutProps> = ({
                             <Controls
                                 onNumberClick={onNumberClick}
                                 onActionClick={onActionClick}
-                                pencilMode={gameState.pencilMode}
+                                pencilMode={pencilMode}
                                 selectedNumber={
                                     gameState.selectedRow !== -1 && gameState.selectedCol !== -1
                                         ? gameState.board.cells[gameState.selectedRow][gameState.selectedCol].value

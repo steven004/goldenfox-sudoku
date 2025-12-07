@@ -25,7 +25,6 @@ type GameManager struct {
 	// Selection State
 	selectedRow int
 	selectedCol int
-	pencilMode  bool
 
 	// Conflict State
 	conflictRow   int
@@ -48,9 +47,8 @@ func NewGameManager(generator engine.PuzzleGenerator) *GameManager {
 
 	return &GameManager{
 		generator:     generator,
-		selectedRow:   -1,
-		selectedCol:   -1,
-		pencilMode:    false,
+		selectedRow:   4, // Start at center
+		selectedCol:   4, // Start at center
 		conflictRow:   -1,
 		conflictCol:   -1,
 		conflictValue: 0,
@@ -122,10 +120,9 @@ func (gm *GameManager) NewGame(difficultyOverride string) error {
 	gm.difficulty = targetDifficulty
 	gm.difficultyIndex = diffIndex
 
-	// Reset selection
-	gm.selectedRow = -1
-	gm.selectedCol = -1
-	gm.pencilMode = false
+	// Reset selection to Center (4,4)
+	gm.selectedRow = 4
+	gm.selectedCol = 4
 	gm.ResetConflict()
 
 	// Reset Timer
@@ -163,10 +160,9 @@ func (gm *GameManager) RestartGame() error {
 	// Clone the initial board
 	gm.currentBoard = gm.initialBoard.Clone()
 
-	// Reset selection and mode
-	gm.selectedRow = -1
-	gm.selectedCol = -1
-	gm.pencilMode = false
+	// Reset selection to Center (4,4) and mode
+	gm.selectedRow = 4
+	gm.selectedCol = 4
 	gm.ResetConflict()
 
 	// Reset Timer
@@ -225,23 +221,105 @@ func (gm *GameManager) ClearSelection() {
 	gm.selectedCol = -1
 }
 
-// TogglePencilMode switches between number input and pencil note mode
-func (gm *GameManager) TogglePencilMode() {
-	gm.pencilMode = !gm.pencilMode
+// InputNumber attempts to input a number into the selected cell (Pen Mode)
+func (gm *GameManager) InputNumber(val int) error {
+	if gm.selectedRow == -1 || gm.selectedCol == -1 {
+		return fmt.Errorf("no cell selected")
+	}
+
+	if gm.currentBoard == nil {
+		return fmt.Errorf("no game in progress")
+	}
+
+	cell := &gm.currentBoard.Cells[gm.selectedRow][gm.selectedCol]
+
+	// Cannot edit given cells
+	if cell.Given {
+		return fmt.Errorf("cannot edit given cell")
+	}
+
+	// Save state for Undo
+	gm.history.Push(gm.currentBoard)
+
+	// PEN MODE: Set value
+	if cell.Value == val {
+		// Tapping same number clears it
+		cell.Value = 0
+	} else {
+		cell.Value = val
+		// Force clear note for this number in this cell if setting value
+		delete(cell.Candidates, val)
+	}
+
+	// Valdation/Stats Logic
+	isValid := gm.currentBoard.IsValidMove(gm.selectedRow, gm.selectedCol, val)
+
+	if isValid {
+		// Valid move
+		gm.currentBoard.RemoveCandidateFromPeers(gm.selectedRow, gm.selectedCol, val)
+		gm.ResetConflict()
+
+		// Check for win
+		if gm.currentBoard.IsSolved() {
+			gm.timer.Stop()
+			if err := gm.SaveCurrentGame(); err != nil {
+				fmt.Printf("Error auto-saving game: %v\n", err)
+			}
+		} else {
+			go gm.SaveCurrentGame()
+		}
+	} else {
+		// Invalid
+		gm.conflictRow = gm.selectedRow
+		gm.conflictCol = gm.selectedCol
+		gm.conflictValue = val
+	}
+
+	return nil
 }
 
-// IsPencilMode returns true if pencil mode is active
-func (gm *GameManager) IsPencilMode() bool {
-	return gm.pencilMode
+// ToggleCandidate toggles a candidate note in the selected cell
+func (gm *GameManager) ToggleCandidate(val int) error {
+	if gm.selectedRow == -1 || gm.selectedCol == -1 {
+		return fmt.Errorf("no cell selected")
+	}
+
+	if gm.currentBoard == nil {
+		return fmt.Errorf("no game in progress")
+	}
+
+	cell := &gm.currentBoard.Cells[gm.selectedRow][gm.selectedCol]
+
+	// Cannot edit given cells
+	if cell.Given {
+		return fmt.Errorf("cannot edit given cell")
+	}
+
+	// Only allow notes if cell is empty (Value == 0)
+	if cell.Value != 0 {
+		return nil
+	}
+
+	// Save state for Undo
+	gm.history.Push(gm.currentBoard)
+
+	if cell.Candidates == nil {
+		cell.Candidates = make(map[int]bool)
+	}
+	if cell.Candidates[val] {
+		delete(cell.Candidates, val)
+	} else {
+		cell.Candidates[val] = true
+	}
+
+	go gm.SaveCurrentGame()
+
+	return nil
 }
 
-// SetPencilMode explicitly sets the pencil mode state
-func (gm *GameManager) SetPencilMode(enabled bool) {
-	gm.pencilMode = enabled
-}
-
-// InputNumber places a number or pencil note at the specified position
-func (gm *GameManager) InputNumber(row, col, val int) error {
+// InputNumberAt places a number or pencil note at the specified position
+// logic from InputNumber(row, col, val) moved here
+func (gm *GameManager) InputNumberAt(row, col, val int) error {
 	if gm.currentBoard == nil {
 		return fmt.Errorf("no game in progress")
 	}
@@ -259,88 +337,49 @@ func (gm *GameManager) InputNumber(row, col, val int) error {
 		return fmt.Errorf("cannot modify given cell at [%d][%d]", row, col)
 	}
 
-	// Check if already solved (don't allow moves if game is over)
+	// Check if already solved
 	if !gm.timer.IsRunning() && gm.currentBoard.IsSolved() {
 		return nil
 	}
 
-	// LOCKOUT LOGIC: Check if there is an active conflict
+	// LOCKOUT LOGIC
 	if gm.conflictRow != -1 {
-		// If there is a conflict, user MUST interact with the conflicting cell
 		if row != gm.conflictRow || col != gm.conflictCol {
 			return fmt.Errorf("must resolve conflict at [%d][%d] first", gm.conflictRow+1, gm.conflictCol+1)
 		}
-		// If interacting with the conflicting cell, proceed to validation below
 	}
 
-	if gm.pencilMode {
-		// Pencil mode is allowed even during conflict?
-		// User said "erase it before fill other numbers".
-		// Let's assume pencil marks are fine or blocked?
-		// Safest is to BLOCK pencil marks on OTHER cells too.
-		if gm.conflictRow != -1 && (row != gm.conflictRow || col != gm.conflictCol) {
-			return fmt.Errorf("must resolve conflict at [%d][%d] first", gm.conflictRow+1, gm.conflictCol+1)
-		}
+	// This method handles direct input (Pen Mode)
 
-		// Toggle candidate: if exists, remove it; otherwise, add it.
-		candidates, err := gm.currentBoard.GetCandidates(row, col)
-		if err != nil {
+	// Check validity
+	isValid := gm.currentBoard.IsValidMove(row, col, val)
+
+	if isValid {
+		// Valid move
+		gm.history.Push(gm.currentBoard)
+
+		if err := gm.currentBoard.SetValue(row, col, val); err != nil {
 			return err
 		}
+		gm.currentBoard.RemoveCandidateFromPeers(row, col, val)
+		gm.ResetConflict()
 
-		exists := false
-		for _, c := range candidates {
-			if c == val {
-				exists = true
-				break
+		if gm.currentBoard.IsSolved() {
+			gm.timer.Stop()
+			if err := gm.SaveCurrentGame(); err != nil {
+				fmt.Printf("Error auto-saving game: %v\n", err)
 			}
-		}
-
-		if exists {
-			return gm.currentBoard.RemoveCandidate(row, col, val)
 		} else {
-			return gm.currentBoard.AddCandidate(row, col, val)
+			go gm.SaveCurrentGame()
 		}
 	} else {
-		// Place number
-
-		// Check validity
-		isValid := gm.currentBoard.IsValidMove(row, col, val)
-
-		if isValid {
-			// Valid move: Set value and clear any conflict state
-			// Save state to history before modifying
-			gm.history.Push(gm.currentBoard)
-
-			if err := gm.currentBoard.SetValue(row, col, val); err != nil {
-				return err
-			}
-			gm.currentBoard.RemoveCandidateFromPeers(row, col, val)
-			gm.ResetConflict() // Conflict resolved
-
-			// Check for win condition
-			if gm.currentBoard.IsSolved() {
-				gm.timer.Stop()
-
-				// Auto-save on win
-				if err := gm.SaveCurrentGame(); err != nil {
-					fmt.Printf("Error auto-saving game: %v\n", err)
-				}
-			} else {
-				// Auto-save progress on valid move
-				// We ignore errors here to avoid interrupting gameplay
-				go gm.SaveCurrentGame()
-			}
-		} else {
-			// Invalid move: Do NOT set value on board. Set Transient Conflict.
-			gm.conflictRow = row
-			gm.conflictCol = col
-			gm.conflictValue = val
-			// Note: We do NOT call SetValue, so board data remains clean.
-		}
-
-		return nil
+		// Invalid move
+		gm.conflictRow = row
+		gm.conflictCol = col
+		gm.conflictValue = val
 	}
+
+	return nil
 }
 
 // ClearCell removes the value or candidates from a cell
@@ -606,7 +645,6 @@ func (gm *GameManager) GetGameState() GameState {
 		SelectedRow:            gm.selectedRow,
 		SelectedCol:            gm.selectedCol,
 		IsSelected:             selected,
-		PencilMode:             gm.pencilMode,
 		Mistakes:               0,
 		EraseCount:             gm.eraseCount,
 		UndoCount:              gm.undoCount,

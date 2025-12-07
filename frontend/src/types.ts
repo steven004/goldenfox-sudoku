@@ -14,7 +14,6 @@ export interface GameState {
     selectedRow: number;
     selectedCol: number;
     isSelected: boolean;
-    pencilMode: boolean;
     mistakes: number;
     eraseCount: number;
     undoCount: number;
