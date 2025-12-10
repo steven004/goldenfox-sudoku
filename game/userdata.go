@@ -183,61 +183,13 @@ func (ud *UserData) UpsertPuzzleRecord(record PuzzleRecord) {
 			} else {
 				// First time completion for this Session ID?
 				// Wait, if ID is unique per NewGame, it's new.
-				// The "Replay" scenario implies we reused the ID.
 				ud.CompletedHistory = append(ud.CompletedHistory, record)
 
-				// Scoring Check:
-				// "game behind current difficult or same difficult but behind progress, will not gain win score"
-				// We need current difficulty/progress from Stats to compare against record's difficulty/context.
-				// However, record ID encodes the context! But let's check current stats.
-
-				// Current User State
-				currentDiff := engine.DifficultyLevel(ud.Stats.Level - 1)
-				if ud.Stats.Level > 6 {
-					currentDiff = engine.FoxGod
-				} // 6 is FoxGod in engine, Level is 1-6?
-				// Actually engine defines Beginner=0..FoxGod=5. Level is 1..6.
-				// userLevel 1 = Beginner(0), 6 = FoxGod(5).
-
-				currentProgress := ud.Stats.Progress
-
-				recordDiff := record.Difficulty
-				// We need to decode Progress from ID or assume we compare against current?
-				// "behind current difficult"
-				isLowerDiff := recordDiff < currentDiff
-
-				// "same difficult but behind progress"
-				// We need the progress this game was created with.
-				// We can parse it from ID or store it? PuzzleRecord doesn't store 'ProgressAtCreation'.
-				// But we can infer it from the ID!
-				// ID: D P ... (1st digit Diff+1, 2nd digit Prog+4)
-				// Let's parse ID.
-
-				shouldScore := true
-				if len(record.ID) == 12 {
-					// Parse Progress Char
-					progChar := record.ID[1]         // '0'..'9'
-					progVal := int(progChar-'0') - 4 // Convert back to -2..4
-
-					if isLowerDiff {
-						shouldScore = false
-					} else if recordDiff == currentDiff {
-						if progVal < currentProgress {
-							shouldScore = false
-						}
-					}
-				}
-
-				if shouldScore {
-					ud.updateStatsLocked(record)
-				}
+				// Update User Stats (UpdateStats handles general stats + RecordWin logic)
+				ud.Stats.UpdateStats(record)
 			}
 		} else if completedIdx != -1 {
 			// Already in Completed, just update (Replay case where it wasn't in pending?)
-			// This happens if we loaded a completed game to replay, but didn't save it to pending yet?
-			// User said: "replayed... also put into uncompleted list".
-			// So it should have been in Pending if we did the load logic right.
-			// But if we are here, just update.
 			oldRecord := ud.CompletedHistory[completedIdx]
 			if record.TimeElapsed < oldRecord.TimeElapsed {
 				ud.CompletedHistory[completedIdx] = record
@@ -245,7 +197,7 @@ func (ud *UserData) UpsertPuzzleRecord(record PuzzleRecord) {
 		} else {
 			// New record directly solved (unlikely)
 			ud.CompletedHistory = append(ud.CompletedHistory, record)
-			ud.updateStatsLocked(record)
+			ud.Stats.UpdateStats(record)
 		}
 	} else {
 		// SCENARIO B: Game is UNCOMPLETED (In Progress)
@@ -259,93 +211,6 @@ func (ud *UserData) UpsertPuzzleRecord(record PuzzleRecord) {
 		}
 		// If it exists in completed (Replay), strictly it stays in completed too.
 		// We don't remove from Completed when replaying, we only copy to Pending.
-	}
-}
-
-// updateStatsLocked is a helper that assumes lock is held
-func (ud *UserData) updateStatsLocked(record PuzzleRecord) {
-	ud.Stats.TotalSolved++
-	ud.Stats.SolvedCounts[record.Difficulty]++
-
-	seconds := record.TimeElapsed.Seconds()
-	ud.Stats.TotalTimes[record.Difficulty] += seconds
-
-	count := float64(ud.Stats.SolvedCounts[record.Difficulty])
-	ud.Stats.AverageTimes[record.Difficulty] = ud.Stats.TotalTimes[record.Difficulty] / count
-
-	currentBest, exists := ud.Stats.BestTimes[record.Difficulty]
-	if !exists || seconds < currentBest {
-		ud.Stats.BestTimes[record.Difficulty] = seconds
-	}
-
-	// ---- Progress & Leveling Logic ----
-
-	currentLevel := ud.Stats.Level
-	currentDiffIndex := currentLevel - 1 // Level 1 -> 0 (Beginner)
-	recordDiffIndex := int(record.Difficulty)
-
-	// Calculate Progress Gain
-	progressGain := 0
-
-	if recordDiffIndex > currentDiffIndex {
-		// Rule 2: Higher Difficulty -> Gain (Diff - CurrentLevel) + 1
-		// Note: "Diff" here likely means the level value (1-6) or index (0-5)?
-		// User said: "(difficult - currentLevel) + 1"
-		// If Level 1 User plays Level 2 (Easy): (2 - 1) + 1 = 2 gain.
-		// Using Indices: (1 - 0) + 1 = 2. Matches.
-		progressGain = (recordDiffIndex - currentDiffIndex) + 1
-	} else if recordDiffIndex == currentDiffIndex {
-		// Same Difficulty
-		// Check "Behind Progress" Rule
-		// Need to extract original progress from ID
-		gameProgress := 0 // Default
-		if len(record.ID) == 12 {
-			progChar := record.ID[1] // 2nd char
-			if progChar >= '0' && progChar <= '9' {
-				gameProgress = int(progChar-'0') - 4
-			}
-		}
-
-		if gameProgress < ud.Stats.Progress {
-			// Rule 1: Same diff but behind progress -> No Gain
-			progressGain = 0
-		} else {
-			// Standard Gain
-			progressGain = 1
-		}
-	} else {
-		// Lower Difficulty
-		// Rule 1: Lower -> No Gain
-		progressGain = 0
-	}
-
-	// Apply Gain
-	if progressGain > 0 {
-		// Momentum Reset: If negative, jump to gain?
-		// Previous logic: "If negative, reset to 1".
-		// Let's refine: If negative, add gain to it? Or reset?
-		// User's "Progress + 1" implies strictly adding.
-		// But earlier "Reset to 1" was standard.
-		// Let's stick to: If negative, reset to baseline + (gain-1)?
-		// Simplest Interpretation: If < 0, Progress = progressGain. If >= 0, Progress += progressGain.
-
-		if ud.Stats.Progress < 0 {
-			ud.Stats.Progress = progressGain
-		} else {
-			ud.Stats.Progress += progressGain
-		}
-	}
-
-	// Level Up Check
-	// Max Progress is 4 (triggers at 5).
-	// If we gain multiple points, we might skip.
-	if ud.Stats.Progress >= 5 {
-		if ud.Stats.Level < 6 {
-			ud.Stats.Level++
-			ud.Stats.Progress = 0 // Reset to 0 after level up
-		} else {
-			ud.Stats.Progress = 5 // Cap at max
-		}
 	}
 }
 

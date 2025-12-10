@@ -32,7 +32,9 @@ func NewUserStats() UserStats {
 }
 
 // UpdateStats updates user statistics based on a solved record
+// It aggregates general stats (times, counts) and calls RecordWin for progress logic.
 func (us *UserStats) UpdateStats(record PuzzleRecord) {
+	// 1. General Stats Updates
 	us.TotalSolved++
 
 	if us.SolvedCounts == nil {
@@ -65,12 +67,17 @@ func (us *UserStats) UpdateStats(record PuzzleRecord) {
 		us.BestTimes[record.Difficulty] = seconds
 	}
 
+	// 2. Calculate Progress (Ranking)
+	us.RecordWin(record)
+}
+
+// RecordWin handles the progress and leveling logic for a won game
+func (us *UserStats) RecordWin(record PuzzleRecord) {
 	// Challenger Level Up Logic
 	// Calculate the gap between played difficulty and user level
 	// Beginner(0) vs Level 1 (Beginner) -> Gap 0?
 	// Note: difficulty enum might need int casting or mapping to be comparable to Level (int).
 	// Engine: Beginner=0, Easy=1, but User Level starts at 1.
-	// Let's verify mapping: engine.Beginner(0) -> Level 1.
 	playedLevel := int(record.Difficulty) + 1
 	diffDelta := playedLevel - us.Level
 
@@ -80,21 +87,37 @@ func (us *UserStats) UpdateStats(record PuzzleRecord) {
 	if diffDelta > 0 {
 		// Playing "Up" -> Bonus Points
 		// e.g. Lv.1 plays Hard(4) -> Delta = 3 -> Gain = 1 + 3 = 4
-		progressGain += diffDelta
+		progressGain += diffDelta // Corrected formula: (Diff - Level) + 1 implies Delta + 1 if Delta is (Diff - Level)
+		// Wait, my previous formula was `progressGain += diffDelta`.
+		// If base was 1, then 1 + Delta. Correct.
 	} else if diffDelta == 0 {
-		// Playing "Fair" -> Standard Gain (1)
-		progressGain = 1
+		// Playing "Fair" -> Standard Gain (1) unless Stale
+
+		// Check "Behind Progress" Rule (Stale Game)
+		gameProgress := 0 // Default
+		if len(record.ID) == 12 {
+			progChar := record.ID[1] // 2nd char
+			if progChar >= '0' && progChar <= '9' {
+				gameProgress = int(progChar-'0') - 4
+			}
+		}
+
+		if gameProgress < us.Progress {
+			// Rule: Same diff but behind progress -> No Gain
+			progressGain = 0
+		}
 	} else {
-		// Playing "Down" (Smurfing) -> No Gain or Reduced Gain
-		// If you are Lv.5 playing Easy(2) -> Delta = -3
+		// Playing "Down" (Smurfing) -> No Gain
 		progressGain = 0
 	}
 
 	// Apply Gain
-	if us.Progress < 0 {
-		us.Progress = progressGain // Reset to positive gain immediately
-	} else {
-		us.Progress += progressGain
+	if progressGain > 0 {
+		if us.Progress < 0 {
+			us.Progress = progressGain // Reset to positive gain immediately
+		} else {
+			us.Progress += progressGain
+		}
 	}
 
 	// Check Promotion
@@ -117,11 +140,11 @@ func (us *UserStats) RecordLoss(difficulty engine.DifficultyLevel) {
 	// BASE PENALTY
 	penalty := 1
 
-	if diffDelta >= 0 {
-		// Playing "Up" or "Fair" -> No Penalty or Reduced
+	if diffDelta > 0 {
+		// Playing "Up" -> No Penalty
 		// If you try Hard and fail, it's okay.
 		penalty = 0
-	} else {
+	} else if diffDelta < 0 {
 		// Playing "Down" and failing -> Massive Penalty
 		// Lv.5 loses to Easy -> Embarrassing.
 		penalty = 2
