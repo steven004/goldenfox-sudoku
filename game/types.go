@@ -9,7 +9,6 @@ type GameState struct {
 	Mistakes        int     `json:"mistakes"`
 	EraseCount      int     `json:"eraseCount"`
 	UndoCount       int     `json:"undoCount"`
-	ElapsedSeconds  int     `json:"elapsedSeconds"` // in seconds
 	Difficulty      string  `json:"difficulty"`
 	DifficultyIndex float64 `json:"difficultyIndex"`
 	IsSolved        bool    `json:"isSolved"`

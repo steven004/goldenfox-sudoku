@@ -28,7 +28,6 @@ func NewApp() *App {
 		panic(fmt.Sprintf("Critical Error: Failed to load embedded puzzle dataset: %v", err))
 	}
 
-	fmt.Println("Successfully loaded embedded puzzle dataset")
 	gameManager := game.NewGameManager(gen)
 
 	return &App{
@@ -50,17 +49,17 @@ func (a *App) startup(ctx context.Context) {
 	// Try to load the last played game (if any)
 	lastGameID := a.gameManager.GetLastGameID()
 	if lastGameID != "" {
-		fmt.Printf("Resuming last game: %s\n", lastGameID)
+
 		if err := a.gameManager.LoadGame(lastGameID); err == nil {
 			return // Successfully resumed
 		} else {
-			fmt.Printf("Failed to resume last game: %v\n", err)
+
 		}
 	}
 
 	// If loading failed or no last game, start a new one (using default/user level)
 	if err := a.gameManager.NewGame(""); err != nil {
-		fmt.Printf("Startup Warning: Failed to create new game: %v\n", err)
+
 	}
 }
 

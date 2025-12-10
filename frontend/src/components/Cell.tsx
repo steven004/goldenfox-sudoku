@@ -8,7 +8,9 @@ interface CellProps {
     isSelected: boolean;
     isPeer: boolean; // Same row/col/block
     isSameValue: boolean; // Same value as selected
+    conflictingCandidates?: number[];
     onClick: (row: number, col: number) => void;
+    isPencilMode?: boolean;
 }
 
 export const CellComponent: React.FC<CellProps> = ({
@@ -18,14 +20,22 @@ export const CellComponent: React.FC<CellProps> = ({
     isSelected,
     isPeer,
     isSameValue,
-    onClick
+    conflictingCandidates = [],
+    onClick,
+    isPencilMode = false
 }) => {
     // Base background color (Cream for user, Light Gray for Given)
     let bgColor = cell.given ? 'bg-[#E5E5E5]' : 'bg-[#FDF6E3]';
 
     // Highlighting logic
     if (isSelected) {
-        bgColor = 'bg-gradient-to-br from-[#FF9F43] to-[#EE5A24] text-white'; // Selected Highlight
+        if (isPencilMode) {
+            // Pencil Mode Highlight: Teal/Cyan Gradient
+            bgColor = 'bg-gradient-to-br from-[#00b894] to-[#00cec9] text-white';
+        } else {
+            // Standard Highlight: Orange Gradient
+            bgColor = 'bg-gradient-to-br from-[#FF9F43] to-[#EE5A24] text-white';
+        }
     } else if (isSameValue && cell.value !== 0) {
         bgColor = 'bg-[#FFEAA7]'; // Same-Number Highlight
     } else if (isPeer) {
@@ -81,11 +91,16 @@ export const CellComponent: React.FC<CellProps> = ({
             ) : (
                 // Render candidates (Pencil Marks)
                 <div className="grid grid-cols-3 grid-rows-3 w-full h-full pointer-events-none">
-                    {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(num => (
-                        <div key={num} className="flex items-center justify-center text-[15px] text-[#636e72] leading-none font-medium">
-                            {cell.candidates && cell.candidates[num] ? num : ''}
-                        </div>
-                    ))}
+                    {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(num => {
+                        const isConflict = conflictingCandidates.includes(num);
+                        return (
+                            <div key={num}
+                                className={`flex items-center justify-center text-[15px] leading-none font-medium ${isConflict ? 'text-red-500 font-bold' : 'text-[#636e72]'}`}
+                            >
+                                {cell.candidates && cell.candidates[num] ? num : ''}
+                            </div>
+                        );
+                    })}
                 </div>
             )}
         </div>

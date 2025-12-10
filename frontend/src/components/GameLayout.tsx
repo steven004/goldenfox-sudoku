@@ -1,5 +1,5 @@
 import React from 'react';
-import { CircleHelp } from 'lucide-react';
+import { CircleHelp, Volume2, VolumeX } from 'lucide-react';
 import bgImage from '../assets/images/background.png';
 import { Board } from './Board';
 import { Controls } from './Controls';
@@ -26,6 +26,8 @@ interface GameLayoutProps {
     onNewGame: (difficulty: string) => void;
     pencilMode: boolean;
     selection: { row: number, col: number };
+    isMuted: boolean;
+    onToggleMute: () => void;
 }
 
 export const GameLayout: React.FC<GameLayoutProps> = ({
@@ -43,7 +45,9 @@ export const GameLayout: React.FC<GameLayoutProps> = ({
     onLoadGame,
     onNewGame,
     pencilMode,
-    selection
+    selection,
+    isMuted,
+    onToggleMute
 }) => {
     if (!gameState) {
         return <div className="flex items-center justify-center h-screen text-white">Loading Golden Fox Sudoku...</div>;
@@ -101,6 +105,15 @@ export const GameLayout: React.FC<GameLayoutProps> = ({
                         <CircleHelp size={32} strokeWidth={2} />
                     </button>
 
+                    {/* Mute Button - Left of Help */}
+                    <button
+                        onClick={onToggleMute}
+                        className="absolute right-24 top-1/2 -translate-y-1/2 p-2 text-[#D68D38] hover:text-[#FFD28F] transition-colors hover:scale-110 active:scale-95"
+                        title={isMuted ? "Unmute" : "Mute"}
+                    >
+                        {isMuted ? <VolumeX size={32} strokeWidth={2} /> : <Volume2 size={32} strokeWidth={2} />}
+                    </button>
+
                     {gameState?.isSolved && (
                         <div className="text-6xl font-black text-transparent bg-clip-text bg-gradient-to-b from-[#FFD28F] to-[#D68D38] drop-shadow-[0_2px_10px_rgba(214,141,56,0.5)] animate-in fade-in zoom-in duration-500 tracking-widest">
                             VICTORY!
@@ -131,6 +144,7 @@ export const GameLayout: React.FC<GameLayoutProps> = ({
                                 selectedRow={selection.row}
                                 selectedCol={selection.col}
                                 onCellClick={onCellClick}
+                                isPencilMode={pencilMode}
                             />
                         </div>
 

@@ -1,10 +1,13 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useGameLogic } from './hooks/useGameLogic';
 import { useConfetti } from './hooks/useConfetti';
 import { useKeyboard } from './hooks/useKeyboard';
+import { useSound } from './hooks/useSound';
 import { GameLayout } from './components/GameLayout';
 
 function App() {
+    const { playSound, isMuted, toggleMute } = useSound();
+
     const {
         gameState,
         timerSeconds,
@@ -14,7 +17,7 @@ function App() {
         handleCellClick,
         handleNumberClick,
         handleGameAction
-    } = useGameLogic();
+    } = useGameLogic(playSound);
 
     const [isHistoryOpen, setIsHistoryOpen] = useState(false);
     const [isHelpOpen, setIsHelpOpen] = useState(false);
@@ -22,11 +25,20 @@ function App() {
 
     useConfetti(gameState?.isSolved || false);
 
+    // Play Win Sound
+    useEffect(() => {
+        if (gameState?.isSolved) {
+            playSound('win');
+        }
+    }, [gameState?.isSolved, playSound]);
+
     const handleActionClick = (action: string) => {
         if (action === 'history') {
             setIsHistoryOpen(true);
+            playSound('click');
         } else if (action === 'new') {
             setIsNewGameOpen(true);
+            playSound('click');
         } else {
             handleGameAction(action);
         }
@@ -62,6 +74,8 @@ function App() {
             setIsNewGameOpen={setIsNewGameOpen}
             onLoadGame={refreshState}
             onNewGame={(diff) => handleGameAction('new', diff)}
+            isMuted={isMuted}
+            onToggleMute={toggleMute}
         />
     );
 }

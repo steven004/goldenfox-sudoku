@@ -1,15 +1,17 @@
 import React from 'react';
 import { SudokuBoard } from '../types';
 import { CellComponent } from './Cell';
+import { getConflictingCandidates } from '../utils/validation';
 
 interface BoardProps {
     board: SudokuBoard;
     selectedRow: number;
     selectedCol: number;
     onCellClick: (row: number, col: number) => void;
+    isPencilMode: boolean;
 }
 
-export const Board: React.FC<BoardProps> = ({ board, selectedRow, selectedCol, onCellClick }) => {
+export const Board: React.FC<BoardProps> = ({ board, selectedRow, selectedCol, onCellClick, isPencilMode }) => {
     if (!board || !board.cells) {
         return <div className="text-white">Loading board...</div>;
     }
@@ -53,7 +55,9 @@ export const Board: React.FC<BoardProps> = ({ board, selectedRow, selectedCol, o
                             isSelected={r === selectedRow && c === selectedCol}
                             isPeer={isPeer(r, c)}
                             isSameValue={isSameValue(r, c)}
+                            conflictingCandidates={cell.value === 0 ? getConflictingCandidates(board, r, c) : undefined}
                             onClick={onCellClick}
+                            isPencilMode={isPencilMode}
                         />
                     ))
                 ))}

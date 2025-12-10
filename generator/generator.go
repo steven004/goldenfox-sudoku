@@ -145,9 +145,6 @@ func (g *PreloadedGenerator) Generate(difficulty engine.DifficultyLevel, extraCl
 	index := g.rand.Intn(len(puzzles))
 	puzzleData := puzzles[index]
 
-	fmt.Printf("Generator: Requesting %s difficulty (Pool: %s, Extra Clues: %d)\n", difficulty.String(), poolLevel.String(), extraClues)
-	fmt.Printf("Generator: Selected puzzle index %d (Diff: %.2f)\n", index, puzzleData.DifficultyIndex)
-
 	// Parse the puzzle string into a SudokuBoard
 	board, err := parsePuzzleString(puzzleData.Puzzle)
 	if err != nil {
@@ -170,7 +167,6 @@ func (g *PreloadedGenerator) Generate(difficulty engine.DifficultyLevel, extraCl
 			}
 		}
 	}
-	fmt.Printf("Generator: Puzzle has %d clues (Original + Extra)\n", clueCount)
 
 	return board, puzzleData.DifficultyIndex, nil
 }

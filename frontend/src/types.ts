@@ -17,7 +17,6 @@ export interface GameState {
     mistakes: number;
     eraseCount: number;
     undoCount: number;
-    elapsedSeconds: number;
     difficulty: string;
     difficultyIndex: number;
     isSolved: boolean;
