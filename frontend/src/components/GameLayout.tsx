@@ -1,6 +1,6 @@
 import React from 'react';
 import { CircleHelp, Volume2, VolumeX } from 'lucide-react';
-import bgImage from '../assets/images/background.png';
+import bgImage from '../assets/images/background.jpg';
 import { Board } from './Board';
 import { Controls } from './Controls';
 import { StatsPanel } from './StatsPanel';
