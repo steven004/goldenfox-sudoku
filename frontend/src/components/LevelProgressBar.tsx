@@ -12,7 +12,7 @@ const LevelProgressBarComponent: React.FC<LevelProgressBarProps> = ({ userLevel,
                 <span className={progress < 0 ? "text-red-400" : ""}>
                     {userLevel > 1 ? `Lv.${userLevel - 1}` : "Min"}
                 </span>
-                <span className="text-fox-orange">Lv.{userLevel}</span>
+                <span className="text-sudoku-primary">Lv.{userLevel}</span>
                 <span className={progress > 0 ? "text-green-400" : ""}>
                     {userLevel < 6 ? `Lv.${userLevel + 1}` : "Max"}
                 </span>

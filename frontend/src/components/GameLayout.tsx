@@ -7,48 +7,32 @@ import { StatsPanel } from './StatsPanel';
 import { HistoryModal } from './HistoryModal';
 import { HelpModal } from './HelpModal';
 import { NewGameModal } from './NewGameModal';
-import { GameState } from '../types';
-import LayoutConfig from '../config.json';
+import { useLayoutStyles } from '../hooks/useLayoutStyles';
+import { useGame } from '../context/GameContext';
 
-interface GameLayoutProps {
-    gameState: GameState | null;
-    timerSeconds: number;
-    onCellClick: (row: number, col: number) => void;
-    onNumberClick: (num: number) => void;
-    onActionClick: (action: string) => void;
-    isHistoryOpen: boolean;
-    setIsHistoryOpen: (isOpen: boolean) => void;
-    isHelpOpen: boolean;
-    setIsHelpOpen: (isOpen: boolean) => void;
-    isNewGameOpen: boolean;
-    setIsNewGameOpen: (isOpen: boolean) => void;
-    onLoadGame: () => void;
-    onNewGame: (difficulty: string) => void;
-    pencilMode: boolean;
-    selection: { row: number, col: number };
-    isMuted: boolean;
-    onToggleMute: () => void;
-}
+export const GameLayout: React.FC = () => {
+    const layoutStyles = useLayoutStyles();
+    const {
+        gameState,
+        timerSeconds,
+        selection,
+        pencilMode,
+        isMuted,
+        toggleMute,
+        handleCellClick,
+        handleNumberClick,
+        handleActionClick,
+        handleNewGame,
+        refreshState,
+        isHistoryOpen,
+        setIsHistoryOpen,
+        isHelpOpen,
+        setIsHelpOpen,
+        isNewGameOpen,
+        setIsNewGameOpen,
+        completionCounts
+    } = useGame();
 
-export const GameLayout: React.FC<GameLayoutProps> = ({
-    gameState,
-    timerSeconds,
-    onCellClick,
-    onNumberClick,
-    onActionClick,
-    isHistoryOpen,
-    setIsHistoryOpen,
-    isHelpOpen,
-    setIsHelpOpen,
-    isNewGameOpen,
-    setIsNewGameOpen,
-    onLoadGame,
-    onNewGame,
-    pencilMode,
-    selection,
-    isMuted,
-    onToggleMute
-}) => {
     if (!gameState) {
         return <div className="flex items-center justify-center h-screen text-white">Loading Golden Fox Sudoku...</div>;
     }
@@ -65,19 +49,7 @@ export const GameLayout: React.FC<GameLayoutProps> = ({
             style={{
                 backgroundImage: `url(${bgImage})`,
                 backgroundSize: '100% 100%',
-                // @ts-ignore
-                '--app-side-length': `${LayoutConfig.APP_SIDE_LENGTH}px`,
-                '--scale-base': LayoutConfig.SCALE_BASE,
-                '--p-margin-top': LayoutConfig.MARGIN_TOP,
-                '--p-margin-left': LayoutConfig.MARGIN_LEFT,
-                '--p-header-height': LayoutConfig.HEADER_HEIGHT,
-                '--p-board-size': LayoutConfig.BOARD_SIZE,
-                '--p-info-bar-width': LayoutConfig.INFO_BAR_WIDTH,
-                '--p-info-bar-height': LayoutConfig.INFO_BAR_HEIGHT,
-                '--p-control-bar-height': LayoutConfig.CONTROL_BAR_HEIGHT,
-                '--p-control-bar-width': LayoutConfig.CONTROL_BAR_WIDTH,
-                '--p-gap-board-info': LayoutConfig.GAP_BOARD_INFO,
-                '--p-gap-board-control': LayoutConfig.GAP_BOARD_CONTROL,
+                ...layoutStyles
             }}
         >
             {/* Main Container with Global Margins */}
@@ -99,7 +71,7 @@ export const GameLayout: React.FC<GameLayoutProps> = ({
                     {/* Help Button */}
                     <button
                         onClick={() => setIsHelpOpen(true)}
-                        className="absolute right-8 top-1/2 -translate-y-1/2 p-2 text-[#D68D38] hover:text-[#FFD28F] transition-colors hover:scale-110 active:scale-95"
+                        className="absolute right-8 top-1/2 -translate-y-1/2 p-2 text-sudoku-primary-dark hover:text-sudoku-primary-light transition-colors hover:scale-110 active:scale-95"
                         title="How to Play"
                     >
                         <CircleHelp size={32} strokeWidth={2} />
@@ -107,15 +79,15 @@ export const GameLayout: React.FC<GameLayoutProps> = ({
 
                     {/* Mute Button - Left of Help */}
                     <button
-                        onClick={onToggleMute}
-                        className="absolute right-24 top-1/2 -translate-y-1/2 p-2 text-[#D68D38] hover:text-[#FFD28F] transition-colors hover:scale-110 active:scale-95"
+                        onClick={toggleMute}
+                        className="absolute right-24 top-1/2 -translate-y-1/2 p-2 text-sudoku-primary-dark hover:text-sudoku-primary-light transition-colors hover:scale-110 active:scale-95"
                         title={isMuted ? "Unmute" : "Mute"}
                     >
                         {isMuted ? <VolumeX size={32} strokeWidth={2} /> : <Volume2 size={32} strokeWidth={2} />}
                     </button>
 
                     {gameState?.isSolved && (
-                        <div className="text-6xl font-black text-transparent bg-clip-text bg-gradient-to-b from-[#FFD28F] to-[#D68D38] drop-shadow-[0_2px_10px_rgba(214,141,56,0.5)] animate-in fade-in zoom-in duration-500 tracking-widest">
+                        <div className="text-6xl font-black text-transparent bg-clip-text bg-gradient-to-b from-sudoku-primary-light to-sudoku-primary-dark drop-shadow-[0_2px_10px_rgba(214,141,56,0.5)] animate-in fade-in zoom-in duration-500 tracking-widest">
                             VICTORY!
                         </div>
                     )}
@@ -143,7 +115,7 @@ export const GameLayout: React.FC<GameLayoutProps> = ({
                                 board={gameState.board}
                                 selectedRow={selection.row}
                                 selectedCol={selection.col}
-                                onCellClick={onCellClick}
+                                onCellClick={handleCellClick}
                                 isPencilMode={pencilMode}
                             />
                         </div>
@@ -156,25 +128,15 @@ export const GameLayout: React.FC<GameLayoutProps> = ({
                             }}
                         >
                             <Controls
-                                onNumberClick={onNumberClick}
-                                onActionClick={onActionClick}
+                                onNumberClick={handleNumberClick}
+                                onActionClick={handleActionClick}
                                 pencilMode={pencilMode}
                                 selectedNumber={
                                     selection.row !== -1 && selection.col !== -1
                                         ? gameState.board.cells[selection.row][selection.col].value
                                         : undefined
                                 }
-                                completionCounts={(() => {
-                                    const counts: Record<number, number> = {};
-                                    gameState.board.cells.forEach(row => {
-                                        row.forEach(cell => {
-                                            if (cell.value !== 0) {
-                                                counts[cell.value] = (counts[cell.value] || 0) + 1;
-                                            }
-                                        });
-                                    });
-                                    return counts;
-                                })()}
+                                completionCounts={completionCounts}
                             />
                         </div>
                     </div>
@@ -209,7 +171,7 @@ export const GameLayout: React.FC<GameLayoutProps> = ({
             <HistoryModal
                 isOpen={isHistoryOpen}
                 onClose={() => setIsHistoryOpen(false)}
-                onLoadGame={onLoadGame}
+                onLoadGame={refreshState}
             />
 
             <HelpModal
@@ -220,7 +182,7 @@ export const GameLayout: React.FC<GameLayoutProps> = ({
             <NewGameModal
                 isOpen={isNewGameOpen}
                 onClose={() => setIsNewGameOpen(false)}
-                onSelectDifficulty={onNewGame}
+                onSelectDifficulty={handleNewGame}
                 userLevel={gameState.userLevel}
             />
 

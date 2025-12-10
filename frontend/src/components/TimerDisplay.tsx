@@ -17,10 +17,10 @@ export const TimerDisplay: React.FC<TimerDisplayProps> = ({
     return (
         <div className="flex flex-col items-center bg-black/20 rounded-lg p-5 shadow-[inset_0_2px_4px_rgba(0,0,0,0.4),0_1px_0_rgba(255,255,255,0.1)] border border-white/5">
             <div className="flex items-center gap-2 mb-2">
-                <Clock size={18} className="text-fox-orange" />
+                <Clock size={18} className="text-sudoku-primary" />
                 <span className="text-sm text-gray-500 font-bold uppercase tracking-wider">Time</span>
             </div>
-            <div className="text-5xl font-mono font-bold text-fox-orange drop-shadow-md leading-none mb-4">
+            <div className="text-5xl font-mono font-bold text-sudoku-primary drop-shadow-md leading-none mb-4">
                 {timeElapsed}
             </div>
 

@@ -36,7 +36,7 @@ export const StatsPanel: React.FC<StatsPanelProps> = ({
     remainingCells
 }) => {
     return (
-        <div className="flex flex-col gap-4 bg-gradient-to-b from-[#323846] to-[#1E222D] p-5 rounded-xl w-full backdrop-blur-sm border-4 border-[#FF9F43] shadow-[inset_0_1px_1px_rgba(255,255,255,0.3),inset_0_-1px_1px_rgba(0,0,0,0.5),0_10px_30px_rgba(0,0,0,0.6),0_0_0_2px_rgba(255,159,67,0.3)] relative overflow-hidden h-full">
+        <div className="flex flex-col gap-4 bg-gradient-to-b from-sudoku-panel to-sudoku-panel-dark p-5 rounded-xl w-full backdrop-blur-sm border-4 border-sudoku-primary shadow-[inset_0_1px_1px_rgba(255,255,255,0.3),inset_0_-1px_1px_rgba(0,0,0,0.5),0_10px_30px_rgba(0,0,0,0.6),0_0_0_2px_rgba(255,159,67,0.3)] relative overflow-hidden h-full">
             {/* Glossy sheen effect */}
             <div className="absolute top-0 left-0 w-full h-1/3 bg-gradient-to-b from-white/5 to-transparent pointer-events-none" />
 

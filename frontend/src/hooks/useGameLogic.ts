@@ -147,12 +147,14 @@ export const useGameLogic = (onSound?: (type: 'click' | 'pop' | 'error' | 'erase
                 case 'new':
                     await NewGame(difficulty || "Easy");
                     setSelection({ row: 4, col: 4 });
+                    setTimerSeconds(0);
                     refreshState();
                     onSound?.('click');
                     break;
                 case 'restart':
                     await RestartGame();
                     setSelection({ row: 4, col: 4 });
+                    setTimerSeconds(0);
                     refreshState();
                     onSound?.('erase');
                     break;

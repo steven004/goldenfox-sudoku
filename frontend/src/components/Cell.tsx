@@ -13,6 +13,53 @@ interface CellProps {
     isPencilMode?: boolean;
 }
 
+// --- Style Helper Functions ---
+
+const getBackgroundColor = (
+    cell: Cell,
+    isSelected: boolean,
+    isPencilMode: boolean,
+    isSameValue: boolean,
+    isPeer: boolean
+): string => {
+    if (isSelected) {
+        if (isPencilMode) return 'bg-gradient-to-br from-sudoku-teal to-sudoku-teal-light text-white';
+        // Selection Gradient
+        return 'bg-gradient-to-br from-sudoku-primary to-[#EE5A24] text-white';
+    }
+    if (isSameValue && cell.value !== 0) return 'bg-sudoku-highlight'; // Same-Value Highlight
+    if (isPeer) return 'bg-sudoku-peer'; // Peer Highlight
+    return cell.given ? 'bg-sudoku-cell-given' : 'bg-sudoku-cell-bg'; // Base Color
+};
+
+const getTextColor = (cell: Cell, isSelected: boolean): string => {
+    if (cell.isInvalid && !cell.given) {
+        return isSelected ? 'text-red-200' : 'text-red-500';
+    }
+    const fontStyle = cell.given ? 'font-bold' : 'font-light italic';
+    const baseColor = isSelected ? 'text-white' : 'text-sudoku-text';
+    return `${baseColor} ${fontStyle}`;
+};
+
+const getBorderClasses = (row: number, col: number): string => {
+    let classes = '';
+    // Right Border
+    if (col !== 8) {
+        classes += (col + 1) % 3 === 0
+            ? ' border-r-[2px] border-sudoku-primary-dark'
+            : ' border-r border-sudoku-grid';
+    }
+    // Bottom Border
+    if (row !== 8) {
+        classes += (row + 1) % 3 === 0
+            ? ' border-b-[2px] border-sudoku-primary-dark'
+            : ' border-b border-sudoku-grid';
+    }
+    return classes;
+};
+
+// --- Component ---
+
 export const CellComponent: React.FC<CellProps> = ({
     cell,
     row,
@@ -24,65 +71,16 @@ export const CellComponent: React.FC<CellProps> = ({
     onClick,
     isPencilMode = false
 }) => {
-    // Base background color (Cream for user, Light Gray for Given)
-    let bgColor = cell.given ? 'bg-[#E5E5E5]' : 'bg-[#FDF6E3]';
-
-    // Highlighting logic
-    if (isSelected) {
-        if (isPencilMode) {
-            // Pencil Mode Highlight: Teal/Cyan Gradient
-            bgColor = 'bg-gradient-to-br from-[#00b894] to-[#00cec9] text-white';
-        } else {
-            // Standard Highlight: Orange Gradient
-            bgColor = 'bg-gradient-to-br from-[#FF9F43] to-[#EE5A24] text-white';
-        }
-    } else if (isSameValue && cell.value !== 0) {
-        bgColor = 'bg-[#FFEAA7]'; // Same-Number Highlight
-    } else if (isPeer) {
-        // Peer highlight (Row/Col/Block)
-        bgColor = 'bg-[#FFE0B2]';
-    }
-
-    // Text color (Dark Charcoal for numbers, White for selected)
-    // Differentiate font weight/style: Bold for Given, Light + Italic for User Input
-    // Conflict Check: Red if invalid
-    const fontStyle = cell.given ? 'font-bold' : 'font-light italic';
-    let colorClass = isSelected ? 'text-white' : 'text-[#2D3436]';
-
-    if (cell.isInvalid && !cell.given) {
-        colorClass = isSelected ? 'text-red-200' : 'text-red-500';
-    }
-
-    const textColor = `${colorClass} ${fontStyle}`;
-
-    // Grid Lines Logic (Strict Specs)
-    let borderClasses = '';
-
-    // Right Border
-    if (col !== 8) {
-        if ((col + 1) % 3 === 0) {
-            borderClasses += ' border-r-[2px] border-[#D68D38]'; // Thick Divider
-        } else {
-            borderClasses += ' border-r border-[#B2BEC3]'; // Thin Grid Line
-        }
-    }
-
-    // Bottom Border
-    if (row !== 8) {
-        if ((row + 1) % 3 === 0) {
-            borderClasses += ' border-b-[2px] border-[#D68D38]'; // Thick Divider
-        } else {
-            borderClasses += ' border-b border-[#B2BEC3]'; // Thin Grid Line
-        }
-    }
+    const bgColor = getBackgroundColor(cell, isSelected, isPencilMode, isSameValue, isPeer);
+    const textColor = getTextColor(cell, isSelected);
+    const borderClasses = getBorderClasses(row, col);
 
     return (
         <div
             className={`
                 w-full h-full flex items-center justify-center cursor-pointer select-none
                 text-3xl transition-all duration-100 relative
-                ${bgColor} ${textColor}
-                ${borderClasses}
+                ${bgColor} ${textColor} ${borderClasses}
             `}
             onClick={() => onClick(row, col)}
         >
@@ -95,7 +93,7 @@ export const CellComponent: React.FC<CellProps> = ({
                         const isConflict = conflictingCandidates.includes(num);
                         return (
                             <div key={num}
-                                className={`flex items-center justify-center text-[15px] leading-none font-medium ${isConflict ? 'text-red-500 font-bold' : 'text-[#636e72]'}`}
+                                className={`flex items-center justify-center text-[15px] leading-none font-medium ${isConflict ? 'text-red-500 font-bold' : 'text-sudoku-text-secondary'}`}
                             >
                                 {cell.candidates && cell.candidates[num] ? num : ''}
                             </div>

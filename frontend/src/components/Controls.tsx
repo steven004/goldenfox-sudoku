@@ -34,7 +34,7 @@ export const Controls: React.FC<ControlsProps> = ({ onNumberClick, onActionClick
                     } else {
                         // 3. Normal State (Amber Glass Stone)
                         // Convex look, deep amber, glossy highlight
-                        buttonStyle = 'text-[#FFD28F] border border-[#D68D38]/50 shadow-[inset_0_2px_4px_rgba(255,255,255,0.2),inset_0_-2px_4px_rgba(0,0,0,0.4),0_4px_8px_rgba(0,0,0,0.4)] hover:scale-105 active:scale-95 transition-transform';
+                        buttonStyle = 'text-sudoku-primary-light border border-sudoku-primary-dark/50 shadow-[inset_0_2px_4px_rgba(255,255,255,0.2),inset_0_-2px_4px_rgba(0,0,0,0.4),0_4px_8px_rgba(0,0,0,0.4)] hover:scale-105 active:scale-95 transition-transform';
                         inlineStyle = { background: 'radial-gradient(circle at 30% 30%, rgba(214,141,56,0.3), rgba(214,141,56,0.1))' };
                     }
 
@@ -78,8 +78,8 @@ export const Controls: React.FC<ControlsProps> = ({ onNumberClick, onActionClick
                                 py-2 px-3 rounded-xl border transition-all duration-100
                                 min-w-[4.5rem] relative overflow-hidden
                                 ${isActive
-                                    ? 'bg-gradient-to-b from-[#D68D38] to-[#B57025] border-[#B57025] text-[#121418] shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)] translate-y-[1px]'
-                                    : 'bg-gradient-to-b from-[#2a303c] to-[#1E222D] border-[#3E4552] text-[#D68D38] shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_4px_0_#151820,0_5px_10px_rgba(0,0,0,0.5)] hover:translate-y-[1px] hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_3px_0_#151820,0_4px_8px_rgba(0,0,0,0.5)] active:translate-y-[4px] active:shadow-[inset_0_2px_4px_rgba(0,0,0,0.4)]'
+                                    ? 'bg-gradient-to-b from-sudoku-primary-dark to-sudoku-primary-darker border-sudoku-primary-darker text-[#121418] shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)] translate-y-[1px]'
+                                    : 'bg-gradient-to-b from-sudoku-panel to-sudoku-panel-dark border-[#3E4552] text-sudoku-primary-dark shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_4px_0_#151820,0_5px_10px_rgba(0,0,0,0.5)] hover:translate-y-[1px] hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_3px_0_#151820,0_4px_8px_rgba(0,0,0,0.5)] active:translate-y-[4px] active:shadow-[inset_0_2px_4px_rgba(0,0,0,0.4)]'
                                 }
                             `}
                             onClick={() => onActionClick(action.id)}
