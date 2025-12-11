@@ -53,15 +53,8 @@ func getUserDataPath() (string, error) {
 }
 
 // ResolveUserDataPath determines the path to the user data file
-// It prioritizes a local file if it exists (legacy/dev), otherwise defaults to OS Config Dir
+// It now ALWAYS defaults to the standard OS Config Dir to ensure consistency between Dev and Prod
 func ResolveUserDataPath(filename string) (string, error) {
-	// 1. If filename is provided, check if it exists locally
-	if filename != "" {
-		if _, err := os.Stat(filename); err == nil {
-			return filename, nil
-		}
-	}
-
 	// 2. Default to standard OS config path
 	return getUserDataPath()
 }
