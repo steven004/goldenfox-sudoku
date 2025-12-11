@@ -273,8 +273,9 @@ func (gm *GameManager) GetGameState() GameState {
 	if gm.userData != nil {
 		gm.userData.mu.RLock()
 		level = gm.userData.Stats.Level
-		// Games Played = Completed Games
-		gamesPlayed = len(gm.userData.CompletedHistory)
+		// Games Played = Total Solved (Legacy Counter)
+		// We use the counter because history might be cleared/partial, but we want to show the user's total accumulation.
+		gamesPlayed = gm.userData.Stats.TotalSolved
 		winRate = gm.userData.GetWinRate()
 		pending = gm.userData.GetPendingGamesCount()
 		if gm.currentSession != nil {
