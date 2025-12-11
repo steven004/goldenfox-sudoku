@@ -137,25 +137,23 @@ func (us *UserStats) RecordLoss(difficulty engine.DifficultyLevel) {
 	playedLevel := int(difficulty) + 1
 	diffDelta := playedLevel - us.Level
 
-	// BASE PENALTY
-	penalty := 1
-
 	if diffDelta > 0 {
-		// Playing "Up" -> No Penalty
-		// If you try Hard and fail, it's okay.
-		penalty = 0
-	} else if diffDelta < 0 {
-		// Playing "Down" and failing -> Massive Penalty
-		// Lv.5 loses to Easy -> Embarrassing.
-		penalty = 2
-	}
-
-	// Apply Penalty
-	if penalty > 0 {
+		// Playing "Up" -> Standard Penalty
+		// User requested: "count one progress back"
+		us.Progress -= 1
+	} else {
 		if us.Progress > 0 {
-			us.Progress = -penalty // Reset to negative immediately
+			// Set back to 0 progress for any loss on the same or lower level
+			us.Progress = 0
+		}
+
+		// then, add more penalty
+		if diffDelta < 0 {
+			// Playing "Down" and failing -> Massive Penalty
+			// Lv.5 loses to Easy -> Embarrassing.
+			us.Progress -= 2
 		} else {
-			us.Progress -= penalty
+			us.Progress -= 1
 		}
 	}
 

@@ -233,11 +233,18 @@ func (ud *UserData) GetWinRate() float64 {
 	ud.mu.RLock()
 	defer ud.mu.RUnlock()
 
-	total := len(ud.CompletedHistory) + len(ud.PendingHistory)
+	// Use actual stored history for consistency to avoid >100% rates
+	// TotalSolved in Stats might be desynced or count duplicates if logic changes
+	solvedCount := len(ud.CompletedHistory)
+
+	// Total = Solved + Pending (In Progress)
+	// Note: If a user deletes history, this rate resets, which is correct behavior for "User Data"
+	total := solvedCount + len(ud.PendingHistory)
+
 	if total == 0 {
 		return 0.0
 	}
-	return (float64(ud.Stats.TotalSolved) / float64(total)) * 100
+	return (float64(solvedCount) / float64(total)) * 100
 }
 
 // GetGamesAtDifficulty returns the number of games played (started) at a specific difficulty
