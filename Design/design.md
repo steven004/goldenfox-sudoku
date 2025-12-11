@@ -89,23 +89,32 @@ The application follows the **Wails Architecture**:
     -   `ToggleCandidate`: strictly rejects invalid notes.
 
 ### 4.3. User Interface (Frontend)
-**Tech**: React, TypeScript, Vite.
+**Tech**: React, TypeScript, Vite, Tailwind CSS.
 **Path**: `frontend/src`
 
+-   **State Management**:
+    -   **Context API (`GameContext`)**: Centralizes all game state (`gameState`, `timer`, `selection`, `settings`). Eliminates prop drilling.
+    -   **Providers**: `GameProvider` wraps the main app.
+-   **Styling**:
+    -   **Tailwind Config**: Custom `sudoku-*` color palette defined in `tailwind.config.cjs` for consistent theming.
+    -   **Layout Hook**: `useLayoutStyles` extracts complex layout math (CSS variables) from components.
 -   **Components**:
-    -   `App`: Main layout, Headers, Sidebar.
-    -   `Board`: Renders 9x9 grid.
-    -   `Cell`: Individual cell rendering (Value, Candidates, Colors).
-        -   **Visuals**: Handles "Same Number" highlight, "Peer" highlight, "Error" red state.
-    -   `Controls`: Number pad, Tool toggles (Pen/Pencil).
--   **Hooks**:
-    -   `useGameLogic`: The brain of the frontend.
-        -   Maintains `gameState`.
-        -   Maintains `transientError` (local temporary state for invalid inputs).
-        -   Maintains `transientSound` logic.
-    -   `useSound`: Manages AudioContext and sound assets.
+    -   `App`: Entry point, wraps providers.
+    -   `GameLayout`: Main responsive container, consumes `useLayoutStyles`.
+    -   `Board` / `Cell`: Renders grid. `Cell` logic simplified to pure helper functions (`getBackgroundColor`, etc.).
+    -   `Controls`: Input pad and tools.
+    -   `StatsPanel`: Displays level, progress, and history stats.
 
-### 4.4. Persistence Layer
+### 4.4. Progression & Stats Logic
+**Win Assessment**:
+-   **Win Rate**: Calculated dynamically as `len(Completed) / (len(Completed) + len(Pending))`. Ensures synchronization.
+-   **Progress**:
+    -   **Win**: Base +1. Bonus for playing "Up" (Difficulty > User Level).
+    -   **Loss (RecordLoss)**:
+        -   **Playing Up**: Gentle penalty (Progress -1). Encourages challenging yourself.
+        -   **Playing Fair/Down**: Strict penalty. Resets positive progress to 0, then subtracts penalty. "Gatekeeper" mechanic prevents leveling up if losing easy games.
+
+### 4.5. Persistence Layer
 **Structure**: `UserData` struct in `game/userdata.go`.
 **Storage**: `user_data.json`. Defaults to OS Config setup, but supports local file override if present.
 
