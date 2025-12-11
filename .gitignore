@@ -39,3 +39,16 @@ dist/
 # Application specific
 *.log
 user_data.json
+goldenfox
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+
+# Wails Build
+build/bin/
+
+# Mac / Installer Artifacts
+*.dmg
+*.app/
+*.iconset/
