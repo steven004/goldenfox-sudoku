@@ -116,12 +116,13 @@ func (gm *GameManager) RestartGame() error {
 		return fmt.Errorf("no game in progress")
 	}
 
-	// Create new session with same initial board
+	// Create new session with same initial board AND same ID
+	// This ensures we overwrite the existing Pending record instead of creating a duplicate
 	gm.currentSession = NewGameSession(
 		gm.currentSession.initialBoard, // this creates a clone inside NewGameSession
 		gm.currentSession.difficulty,
 		gm.currentSession.difficultyIndex,
-		fmt.Sprintf("%d", time.Now().UnixNano()),
+		gm.currentSession.gameID, // Reuse ID!
 	)
 
 	return nil
