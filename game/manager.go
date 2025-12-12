@@ -73,7 +73,9 @@ func (gm *GameManager) NewGame(difficultyOverride string) error {
 	progress := gm.userData.Stats.Progress
 	extraClues := CalculateDynamicClues(targetDifficulty, progress)
 
-	puzzle, diffIndex, err := gm.generator.Generate(targetDifficulty, extraClues)
+	// Use timestamp as seed for random games
+	seed := fmt.Sprintf("%d", time.Now().UnixNano())
+	puzzle, diffIndex, err := gm.generator.Generate(targetDifficulty, extraClues, seed)
 	if err != nil {
 		return fmt.Errorf("failed to generate puzzle: %w", err)
 	}

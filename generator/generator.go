@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/csv"
 	"fmt"
+	"hash/fnv"
 	"math/rand"
 	"strconv"
 	"time"
@@ -115,7 +116,8 @@ func (g *PreloadedGenerator) loadPuzzles(data []byte) error {
 }
 
 // Generate returns a random puzzle of the specified difficulty
-func (g *PreloadedGenerator) Generate(difficulty engine.DifficultyLevel, extraClues int) (*engine.SudokuBoard, float64, error) {
+// It uses the provided seed for deterministic selection and extra clue positioning
+func (g *PreloadedGenerator) Generate(difficulty engine.DifficultyLevel, extraClues int, seed string) (*engine.SudokuBoard, float64, error) {
 	// Determine the pool to use
 	var poolLevel engine.DifficultyLevel
 
@@ -141,8 +143,19 @@ func (g *PreloadedGenerator) Generate(difficulty engine.DifficultyLevel, extraCl
 		return nil, 0, fmt.Errorf("no puzzles available for difficulty: %s", poolLevel.String())
 	}
 
-	// Select a random puzzle
-	index := g.rand.Intn(len(puzzles))
+	// Helper for seeded randomness
+	// "Simple hash function with salt"
+	getHash := func(context string) uint64 {
+		h := fnv.New64a()
+		h.Write([]byte("golden fox")) // SALT
+		h.Write([]byte(seed))
+		h.Write([]byte(context))
+		return h.Sum64()
+	}
+
+	// Select a puzzle deterministically
+	hashVal := getHash("select_puzzle")
+	index := int(hashVal % uint64(len(puzzles)))
 	puzzleData := puzzles[index]
 
 	// Parse the puzzle string into a SudokuBoard
@@ -153,7 +166,7 @@ func (g *PreloadedGenerator) Generate(difficulty engine.DifficultyLevel, extraCl
 
 	// Add extra clues if needed
 	if extraClues > 0 {
-		if err := g.addExtraClues(board, puzzleData.Solution, extraClues); err != nil {
+		if err := g.addExtraClues(board, puzzleData.Solution, extraClues, getHash); err != nil {
 			fmt.Printf("Warning: Failed to add extra clues: %v\n", err)
 		}
 	}
@@ -172,7 +185,8 @@ func (g *PreloadedGenerator) Generate(difficulty engine.DifficultyLevel, extraCl
 }
 
 // addExtraClues reveals N random empty cells using the solution
-func (g *PreloadedGenerator) addExtraClues(board *engine.SudokuBoard, solutionStr string, count int) error {
+// It uses the provided hash function for deterministic shuffling
+func (g *PreloadedGenerator) addExtraClues(board *engine.SudokuBoard, solutionStr string, count int, hashFunc func(string) uint64) error {
 	if len(solutionStr) != 81 {
 		return fmt.Errorf("invalid solution string length")
 	}
@@ -189,10 +203,16 @@ func (g *PreloadedGenerator) addExtraClues(board *engine.SudokuBoard, solutionSt
 		}
 	}
 
-	// Shuffle empty cells
-	g.rand.Shuffle(len(emptyCells), func(i, j int) {
+	// Deterministic Shuffle (Fisher-Yates) using Hash Function
+	n := len(emptyCells)
+	for i := n - 1; i > 0; i-- {
+		// Generate random index j in [0, i]
+		// Context key changes per step: "shuffle_N"
+		h := hashFunc(fmt.Sprintf("shuffle_%d", i))
+		j := int(h % uint64(i+1))
+
 		emptyCells[i], emptyCells[j] = emptyCells[j], emptyCells[i]
-	})
+	}
 
 	// Reveal the first N cells
 	revealed := 0

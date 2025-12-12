@@ -3,8 +3,8 @@ package engine
 // PuzzleGenerator defines the interface for generating Sudoku puzzles
 type PuzzleGenerator interface {
 	// Generate creates a new Sudoku puzzle of the specified difficulty with extra clues
-	// Returns the board and its specific difficulty index (e.g. 1.2)
-	Generate(difficulty DifficultyLevel, extraClues int) (*SudokuBoard, float64, error)
+	// seed: A string used for deterministic generation (e.g. "daily-2025-12-12"). If empty, behavior is implementation specific (usually random).
+	Generate(difficulty DifficultyLevel, extraClues int, seed string) (*SudokuBoard, float64, error)
 }
 
 // SudokuSolver defines the interface for solving Sudoku puzzles
