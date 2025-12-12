@@ -172,6 +172,8 @@ export const GameLayout: React.FC = () => {
                 isOpen={isHistoryOpen}
                 onClose={() => setIsHistoryOpen(false)}
                 onLoadGame={refreshState}
+                currentUserLevel={gameState.userLevel || 1}
+                currentUserProgress={gameState.progress || 0}
             />
 
             <HelpModal

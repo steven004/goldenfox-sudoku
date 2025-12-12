@@ -5,10 +5,12 @@ import { game } from '../../wailsjs/go/models';
 interface HistoryModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onLoadGame: () => void; // Callback to refresh parent state
+    onLoadGame: () => void;
+    currentUserLevel: number;
+    currentUserProgress: number;
 }
 
-export const HistoryModal = ({ isOpen, onClose, onLoadGame }: HistoryModalProps) => {
+export const HistoryModal = ({ isOpen, onClose, onLoadGame, currentUserLevel, currentUserProgress }: HistoryModalProps) => {
     const [history, setHistory] = useState<game.PuzzleRecord[]>([]);
     const [activeTab, setActiveTab] = useState<'uncompleted' | 'finished'>('uncompleted');
 
@@ -110,41 +112,98 @@ export const HistoryModal = ({ isOpen, onClose, onLoadGame }: HistoryModalProps)
                             No {activeTab} games found.
                         </div>
                     ) : (
-                        filteredHistory.map((record) => (
-                            <div key={record.id} className="bg-white/5 rounded-lg p-4 flex items-center justify-between hover:bg-white/10 transition-colors border border-white/5">
-                                <div>
-                                    <div className="flex items-center gap-3 mb-1">
-                                        {(() => {
-                                            const diffMap: { [key: number]: { label: string, color: string } } = {
-                                                0: { label: 'BEGINNER', color: 'bg-green-500/20 text-green-400' },
-                                                1: { label: 'EASY', color: 'bg-blue-400/20 text-blue-400' },
-                                                2: { label: 'MEDIUM', color: 'bg-yellow-500/20 text-yellow-400' },
-                                                3: { label: 'HARD', color: 'bg-orange-500/20 text-orange-400' },
-                                                4: { label: 'EXPERT', color: 'bg-red-500/20 text-red-500' },
-                                                5: { label: 'FOX GOD', color: 'bg-purple-500/20 text-purple-400' }
-                                            };
-                                            // Default to Beginner/Unknown if out of range, but should cover all
-                                            const info = diffMap[record.difficulty] || { label: 'UNKNOWN', color: 'bg-gray-500/20 text-gray-400' };
-                                            return (
-                                                <span className={`text-xs font-bold px-2 py-0.5 rounded ${info.color}`}>
-                                                    {info.label}
-                                                </span>
-                                            );
-                                        })()}
-                                        <span className="text-white/50 text-xs">{formatDate(record.played_at as any)}</span>
+                        filteredHistory.map((record) => {
+                            // Comparison Logic for Visuals
+                            // Game Level: record.difficulty + 1
+                            // Game Progress: Parsed from ID (or 0 if legacy)
+
+                            const gameLevel = record.difficulty + 1;
+                            let gameProgress = 0;
+                            if (record.id.length === 12) {
+                                const pChar = record.id[1];
+                                const pVal = parseInt(pChar);
+                                if (!isNaN(pVal)) gameProgress = pVal - 4;
+                            }
+
+                            // Determine Style Status
+                            // 3 categories: > (Harder), = (Equal), < (Easier)
+                            let status = 'equal';
+                            let borderClass = 'border-white/5';
+                            let bgClass = 'bg-white/5 hover:bg-white/10';
+
+                            if (gameLevel > currentUserLevel) {
+                                status = 'harder';
+                            } else if (gameLevel < currentUserLevel) {
+                                status = 'easier';
+                            } else {
+                                // Levels Equal, check Progress
+                                if (gameProgress > currentUserProgress) status = 'harder';
+                                else if (gameProgress < currentUserProgress) status = 'easier';
+                                else status = 'equal';
+                            }
+
+                            // Apply Classes
+                            if (status === 'harder') {
+                                borderClass = 'border-l-[6px] border-l-red-500 border-y border-r border-y-white/5 border-r-white/5';
+                                bgClass = 'bg-red-500/5 hover:bg-red-500/10';
+                            } else if (status === 'easier') {
+                                borderClass = 'border-l-[6px] border-l-green-500 border-y border-r border-y-white/5 border-r-white/5';
+                                bgClass = 'bg-green-500/5 hover:bg-green-500/10';
+                            } else {
+                                borderClass = 'border-l-[6px] border-l-yellow-500 border-y border-r border-y-white/5 border-r-white/5';
+                                bgClass = 'bg-yellow-500/5 hover:bg-yellow-500/10';
+                            }
+
+                            return (
+                                <div key={record.id} className={`${bgClass} rounded-lg p-4 flex items-center justify-between transition-colors ${borderClass}`}>
+                                    <div>
+                                        <div className="flex items-center gap-3 mb-1">
+                                            {(() => {
+                                                const diffMap: { [key: number]: { label: string, color: string } } = {
+                                                    0: { label: 'BEGINNER', color: 'bg-green-500/20 text-green-400' },
+                                                    1: { label: 'EASY', color: 'bg-blue-400/20 text-blue-400' },
+                                                    2: { label: 'MEDIUM', color: 'bg-yellow-500/20 text-yellow-400' },
+                                                    3: { label: 'HARD', color: 'bg-orange-500/20 text-orange-400' },
+                                                    4: { label: 'EXPERT', color: 'bg-red-500/20 text-red-500' },
+                                                    5: { label: 'FOX GOD', color: 'bg-purple-500/20 text-purple-400' }
+                                                };
+                                                // Default to Beginner/Unknown if out of range, but should cover all
+                                                const info = diffMap[record.difficulty] || { label: 'UNKNOWN', color: 'bg-gray-500/20 text-gray-400' };
+
+                                                // Parse Progress Suffix from ID (Smart ID only: 12 chars)
+                                                // Format: D P IIIIIIIIII
+                                                // P = Progress + 4
+                                                let suffix = "";
+                                                if (record.id.length === 12) {
+                                                    const pChar = record.id[1];
+                                                    const pVal = parseInt(pChar);
+                                                    if (!isNaN(pVal)) {
+                                                        const progress = pVal - 4;
+                                                        if (progress > 0) suffix = "+".repeat(progress);
+                                                        else if (progress < 0) suffix = "-".repeat(Math.abs(progress));
+                                                    }
+                                                }
+                                                return (
+                                                    <span className={`text-xs font-bold px-2 py-0.5 rounded ${info.color}`}>
+                                                        {info.label}{suffix}
+                                                    </span>
+                                                );
+                                            })()}
+                                            <span className="text-white/50 text-xs">{formatDate(record.played_at as any)}</span>
+                                        </div>
+                                        <div className="text-white font-mono text-lg">
+                                            {formatTime(record.time_elapsed)}
+                                        </div>
                                     </div>
-                                    <div className="text-white font-mono text-lg">
-                                        {formatTime(record.time_elapsed)}
-                                    </div>
+                                    <button
+                                        onClick={() => handleLoad(record.id)}
+                                        className="bg-[#D68D38] text-[#1a1a1a] px-4 py-2 rounded font-bold text-sm hover:bg-[#FFD28F] transition-colors shadow-lg"
+                                    >
+                                        LOAD
+                                    </button>
                                 </div>
-                                <button
-                                    onClick={() => handleLoad(record.id)}
-                                    className="bg-[#D68D38] text-[#1a1a1a] px-4 py-2 rounded font-bold text-sm hover:bg-[#FFD28F] transition-colors shadow-lg"
-                                >
-                                    LOAD
-                                </button>
-                            </div>
-                        ))
+                            );
+                        })
                     )}
                 </div>
 
