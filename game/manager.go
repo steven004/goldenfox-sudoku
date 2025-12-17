@@ -41,9 +41,12 @@ func (gm *GameManager) NewGame(difficultyOverride string) error {
 
 	// Check for abandonment of previous game
 	if gm.currentSession != nil && !gm.currentSession.currentBoard.IsSolved() && gm.currentSession.endTime.IsZero() {
-		// Record Loss
-		gm.userData.RecordLoss(gm.currentSession.difficulty)
-		// Save
+		// Abandonment Penalty
+		// ONLY penalize if the user actually interacted with the session (Safe Abandonment)
+		if gm.currentSession.HasUserInteraction() {
+			gm.userData.RecordLoss(gm.currentSession.difficulty)
+		}
+		// Save regardless (to capture any partial state)
 		gm.saveSessionLocked()
 	}
 

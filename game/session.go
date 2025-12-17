@@ -53,6 +53,15 @@ func (s *GameSession) GetElapsedDuration() time.Duration {
 	return time.Since(s.startTime)
 }
 
+// HasUserInteraction returns true if the user has made any moves in this session
+// This is used for "Safe Abandonment" checks
+func (s *GameSession) HasUserInteraction() bool {
+	if s.history == nil {
+		return false
+	}
+	return s.history.Count() > 0
+}
+
 // InputNumber inputs a number (validates conflict) (Pure Logic)
 func (s *GameSession) InputNumber(row, col, val int) error {
 	if s.currentBoard == nil {
