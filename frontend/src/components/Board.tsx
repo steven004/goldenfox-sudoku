@@ -50,9 +50,10 @@ export const Board = React.memo(({ board, selectedRow, selectedCol, onCellClick,
 
 
     // Smart Crosshatching Logic (Memoized)
-    const { crosshatchRows, crosshatchCols } = React.useMemo(() => {
+    const { crosshatchRows, crosshatchCols, crosshatchBlocks } = React.useMemo(() => {
         const rows = new Set<number>();
         const cols = new Set<number>();
+        const blocks = new Set<number>();
 
         if (activeVal !== 0) {
             board.cells.forEach((row, r) => {
@@ -60,11 +61,13 @@ export const Board = React.memo(({ board, selectedRow, selectedCol, onCellClick,
                     if (cell.value === activeVal) {
                         rows.add(r);
                         cols.add(c);
+                        const blockIndex = Math.floor(r / 3) * 3 + Math.floor(c / 3);
+                        blocks.add(blockIndex);
                     }
                 });
             });
         }
-        return { crosshatchRows: rows, crosshatchCols: cols };
+        return { crosshatchRows: rows, crosshatchCols: cols, crosshatchBlocks: blocks };
     }, [board, activeVal]);
 
     const isCrosshatchPeer = (r: number, c: number) => {
@@ -72,7 +75,8 @@ export const Board = React.memo(({ board, selectedRow, selectedCol, onCellClick,
         // Don't crosshatch the active cells themselves (they are handled by isSameValue)
         if (board.cells[r][c].value === activeVal) return false;
 
-        return crosshatchRows.has(r) || crosshatchCols.has(c);
+        const blockIndex = Math.floor(r / 3) * 3 + Math.floor(c / 3);
+        return crosshatchRows.has(r) || crosshatchCols.has(c) || crosshatchBlocks.has(blockIndex);
     };
 
     return (

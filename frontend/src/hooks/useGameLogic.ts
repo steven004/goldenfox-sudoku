@@ -80,11 +80,11 @@ export const useGameLogic = (onSound?: (type: 'click' | 'pop' | 'error' | 'erase
     }, [refreshState]);
 
     const handleCellClick = async (row: number, col: number) => {
-        setSelection({ row, col });
         onSound?.('click');
 
         if (fastMode && highlightedNumber !== null) {
             // FAST MODE: Paint the cell with the active tool (number)
+            // DO NOT select the cell (keep focus on the tool)
             try {
                 // If it's the SAME cell we just clicked to select (unlikely if painting, but possible), does input work? Yes.
                 const isNote = pencilMode;
@@ -108,6 +108,9 @@ export const useGameLogic = (onSound?: (type: 'click' | 'pop' | 'error' | 'erase
         }
 
         // Standard Highlight Logic (Consistent Cell-First)
+        // Only select the cell if we didn't paint
+        setSelection({ row, col });
+
         if (gameState && gameState.board.cells[row][col]) {
             const cellVal = gameState.board.cells[row][col].value;
             if (cellVal !== 0) {
@@ -124,6 +127,7 @@ export const useGameLogic = (onSound?: (type: 'click' | 'pop' | 'error' | 'erase
         if (fastMode) {
             // FAST MODE: Select Tool
             setHighlightedNumber(num);
+            setSelection({ row: -1, col: -1 }); // Clear cell selection to focus on board scan
             return;
         }
 
@@ -164,6 +168,7 @@ export const useGameLogic = (onSound?: (type: 'click' | 'pop' | 'error' | 'erase
                     // Let's keep it simple.
                     if (!fastMode) { // Turning ON
                         setHighlightedNumber(null); // Reset tool
+                        setSelection({ row: -1, col: -1 }); // Clear selection
                     }
                     onSound?.('click');
                     break;
