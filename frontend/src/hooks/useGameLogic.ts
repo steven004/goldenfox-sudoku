@@ -82,19 +82,15 @@ export const useGameLogic = (onSound?: (type: 'click' | 'pop' | 'error' | 'erase
         setSelection({ row, col });
         onSound?.('click');
 
-        // Sticky Highlight Logic
+        // Sticky Highlight Logic (Reverted to Consistent Cell-First)
         if (gameState && gameState.board.cells[row][col]) {
             const cellVal = gameState.board.cells[row][col].value;
             if (cellVal !== 0) {
                 // Always update highlight if clicking a filled cell
                 setHighlightedNumber(cellVal);
             } else {
-                // If clicking a blank cell:
-                // If in Pencil Mode, KEEP the previous highlight (Sticky)
-                // If in Normal Mode, CLEAR the highlight (Standard Peer View)
-                if (!pencilMode) {
-                    setHighlightedNumber(null);
-                }
+                // If clicking a blank cell, ALWAYS clear highlight (Standard Peer View)
+                setHighlightedNumber(null);
             }
         }
     };
