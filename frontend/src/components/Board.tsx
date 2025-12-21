@@ -35,11 +35,35 @@ export const Board: React.FC<BoardProps> = ({ board, selectedRow, selectedCol, o
     };
 
     // Helper to check if cell has same value as selected cell
+    const selectedVal = (selectedRow !== -1 && selectedCol !== -1) ? board.cells[selectedRow][selectedCol].value : 0;
+
     const isSameValue = (r: number, c: number) => {
-        if (selectedRow === -1 || selectedCol === -1) return false;
-        const selectedVal = board.cells[selectedRow][selectedCol].value;
         if (selectedVal === 0) return false;
         return board.cells[r][c].value === selectedVal;
+    };
+
+    // Smart Crosshatching Logic
+    // Pre-calculate active rows/cols for the selected value
+    const crosshatchRows = new Set<number>();
+    const crosshatchCols = new Set<number>();
+
+    if (selectedVal !== 0) {
+        board.cells.forEach((row, r) => {
+            row.forEach((cell, c) => {
+                if (cell.value === selectedVal) {
+                    crosshatchRows.add(r);
+                    crosshatchCols.add(c);
+                }
+            });
+        });
+    }
+
+    const isCrosshatchPeer = (r: number, c: number) => {
+        if (selectedVal === 0) return false;
+        // Don't crosshatch the active cells themselves (they are handled by isSameValue)
+        if (board.cells[r][c].value === selectedVal) return false;
+
+        return crosshatchRows.has(r) || crosshatchCols.has(c);
     };
 
     return (
@@ -54,6 +78,7 @@ export const Board: React.FC<BoardProps> = ({ board, selectedRow, selectedCol, o
                             col={c}
                             isSelected={r === selectedRow && c === selectedCol}
                             isPeer={isPeer(r, c)}
+                            isCrosshatchPeer={isCrosshatchPeer(r, c)}
                             isSameValue={isSameValue(r, c)}
                             conflictingCandidates={cell.value === 0 ? getConflictingCandidates(board, r, c) : undefined}
                             onClick={onCellClick}

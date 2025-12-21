@@ -6,7 +6,8 @@ interface CellProps {
     row: number;
     col: number;
     isSelected: boolean;
-    isPeer: boolean; // Same row/col/block
+    isPeer: boolean; // Same row/col/block (Standard)
+    isCrosshatchPeer: boolean; // Same row/col as ANY active number instance (Smart Crosshatch)
     isSameValue: boolean; // Same value as selected
     conflictingCandidates?: number[];
     onClick: (row: number, col: number) => void;
@@ -20,7 +21,8 @@ const getBackgroundColor = (
     isSelected: boolean,
     isPencilMode: boolean,
     isSameValue: boolean,
-    isPeer: boolean
+    isPeer: boolean,
+    isCrosshatchPeer: boolean
 ): string => {
     if (isSelected) {
         if (isPencilMode) return 'bg-gradient-to-br from-sudoku-teal to-sudoku-teal-light text-white';
@@ -28,7 +30,11 @@ const getBackgroundColor = (
         return 'bg-gradient-to-br from-sudoku-primary to-[#EE5A24] text-white';
     }
     if (isSameValue && cell.value !== 0) return 'bg-sudoku-highlight'; // Same-Value Highlight
-    if (isPeer) return 'bg-sudoku-peer'; // Peer Highlight
+
+    // Prioritize Crosshatch over standard Peer if active
+    if (isCrosshatchPeer) return 'bg-[#D68D38]/20'; // Subtle Beam (Brand Orange 20%)
+
+    if (isPeer) return 'bg-sudoku-peer'; // Peer Highlight (Standard)
     return cell.given ? 'bg-sudoku-cell-given' : 'bg-sudoku-cell-bg'; // Base Color
 };
 
@@ -66,12 +72,13 @@ export const CellComponent: React.FC<CellProps> = ({
     col,
     isSelected,
     isPeer,
+    isCrosshatchPeer,
     isSameValue,
     conflictingCandidates = [],
     onClick,
     isPencilMode = false
 }) => {
-    const bgColor = getBackgroundColor(cell, isSelected, isPencilMode, isSameValue, isPeer);
+    const bgColor = getBackgroundColor(cell, isSelected, isPencilMode, isSameValue, isPeer, isCrosshatchPeer);
     const textColor = getTextColor(cell, isSelected);
     const borderClasses = getBorderClasses(row, col);
 
