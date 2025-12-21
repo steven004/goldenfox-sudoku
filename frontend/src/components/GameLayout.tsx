@@ -18,6 +18,7 @@ export const GameLayout: React.FC = () => {
         selection,
         highlightedNumber,
         pencilMode,
+        fastMode,
         isMuted,
         toggleMute,
         handleCellClick,
@@ -133,10 +134,13 @@ export const GameLayout: React.FC = () => {
                                 onNumberClick={handleNumberClick}
                                 onActionClick={handleActionClick}
                                 pencilMode={pencilMode}
+                                fastMode={fastMode}
                                 selectedNumber={
-                                    selection.row !== -1 && selection.col !== -1
-                                        ? gameState.board.cells[selection.row][selection.col].value
-                                        : undefined
+                                    fastMode
+                                        ? (highlightedNumber ?? undefined)
+                                        : (selection.row !== -1 && selection.col !== -1
+                                            ? gameState.board.cells[selection.row][selection.col].value
+                                            : undefined)
                                 }
                                 completionCounts={completionCounts}
                             />

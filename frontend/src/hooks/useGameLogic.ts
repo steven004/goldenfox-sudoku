@@ -22,17 +22,18 @@ export const useGameLogic = (onSound?: (type: 'click' | 'pop' | 'error' | 'erase
         }
     }, [transientError]);
 
+    const [fastMode, setFastMode] = useState(false);
     const [highlightedNumber, setHighlightedNumber] = useState<number | null>(null);
 
     // Computed Game State (Base + Transient Overlay)
     const displayState = useMemo(() => {
         if (!gameState) return null;
         if (!transientError) return gameState;
+        // ... (existing clone logic kept implicit for brevity in tool call, but I must preserve it or assume context handles it. 
+        // Wait, replace tool replaces the block. I need to be careful not to delete lines outside my target if I don't include them.
+        // Actually, I can insert fastMode state declaration separately.
+        // Let's split this into safer chunks.
 
-        // Clone deeply enough to modify the specific cell
-        // We do a shallow clone of board/cells structure for performance, assuming immutable updates elsewhere
-        // But here we need to be careful not to mutate the original state if it's reused.
-        // For safety, let's clone the row at least.
         const newCells = gameState.board.cells.map((row, r) =>
             r === transientError.row
                 ? row.map((cell, c) =>
@@ -78,11 +79,35 @@ export const useGameLogic = (onSound?: (type: 'click' | 'pop' | 'error' | 'erase
         refreshState();
     }, [refreshState]);
 
-    const handleCellClick = (row: number, col: number) => {
+    const handleCellClick = async (row: number, col: number) => {
         setSelection({ row, col });
         onSound?.('click');
 
-        // Sticky Highlight Logic (Reverted to Consistent Cell-First)
+        if (fastMode && highlightedNumber !== null) {
+            // FAST MODE: Paint the cell with the active tool (number)
+            try {
+                // If it's the SAME cell we just clicked to select (unlikely if painting, but possible), does input work? Yes.
+                const isNote = pencilMode;
+                if (isNote) {
+                    await ToggleCandidate(row, col, highlightedNumber);
+                    onSound?.('pencil');
+                } else {
+                    await InputNumber(row, col, highlightedNumber);
+                    onSound?.('pop');
+                }
+                refreshState();
+                // Delay refresh to allow backend to process if needed, similar to handleNumberClick
+                setTimeout(refreshState, 50);
+            } catch (err) {
+                // Reuse error handling logic? Or simple fallback.
+                // Ideally we want the transient error here too.
+                setTransientError({ row, col, value: highlightedNumber });
+                onSound?.('error');
+            }
+            return; // Skip standard highlight logic in Fast Mode painting
+        }
+
+        // Standard Highlight Logic (Consistent Cell-First)
         if (gameState && gameState.board.cells[row][col]) {
             const cellVal = gameState.board.cells[row][col].value;
             if (cellVal !== 0) {
@@ -96,6 +121,12 @@ export const useGameLogic = (onSound?: (type: 'click' | 'pop' | 'error' | 'erase
     };
 
     const handleNumberClick = async (num: number, forcePencil: boolean = false) => {
+        if (fastMode) {
+            // FAST MODE: Select Tool
+            setHighlightedNumber(num);
+            return;
+        }
+
         try {
             const { row, col } = selection;
             if (row === -1 || col === -1) return;
@@ -115,30 +146,9 @@ export const useGameLogic = (onSound?: (type: 'click' | 'pop' | 'error' | 'erase
             setTimeout(refreshState, 50);
         } catch (err: any) {
             console.error(err);
-            // Check if error is due to conflict (backend returns "conflict" string or similar in error message usually)
-            // But we can assume any error during input/toggle on a valid cell is likely a rule violation or immutable cell.
-            // For better UX, let's show the transient error if it matches expected conflict patterns or just generic "invalid".
-
-            // To show the red number, we need the number we TRIED to input.
-            // "num" is available here.
-
-            // We trigger transient error for visual feedback
             const { row, col } = selection;
-            if (!pencilMode && !forcePencil) {
-                // Only show big red number for Value input. 
-                // For Notes, maybe we just play error sound? User asked "logic... is the same".
-                // But notes are small. Showing a big red number for a failed note might be confusing?
-                // Wait, if addNote fails, it means the NOTE conflicts with a NUMBER. 
-                // Displaying the big red number implies "This NUMBER is invalid here", which is true!
-                // So yes, showing the transient error is correct for both cases if the value itself is the problem.
-                setTransientError({ row, col, value: num });
-            } else {
-                // If it was a note attempt that failed, should we show the big number?
-                // If I try to pencil "5" and 5 is already in the row...
-                // Seeing a big red "5" fade out conveys "5 is not allowed here". That works.
-                setTransientError({ row, col, value: num });
-            }
-
+            // Show transient error regardless of mode/type if input failed
+            setTransientError({ row, col, value: num });
             onSound?.('error');
         }
     };
@@ -147,6 +157,16 @@ export const useGameLogic = (onSound?: (type: 'click' | 'pop' | 'error' | 'erase
         if (!gameState) return;
         try {
             switch (action) {
+                case 'fastMode':
+                    setFastMode(prev => !prev);
+                    // If turning OFF, maybe clear highlight?
+                    // If turning ON, maybe keep current selection?
+                    // Let's keep it simple.
+                    if (!fastMode) { // Turning ON
+                        setHighlightedNumber(null); // Reset tool
+                    }
+                    onSound?.('click');
+                    break;
                 case 'pencil':
                     setPencilMode(prev => !prev);
                     onSound?.('click');
@@ -194,6 +214,7 @@ export const useGameLogic = (onSound?: (type: 'click' | 'pop' | 'error' | 'erase
         gameState: displayState, // Return the computed state
         timerSeconds,
         pencilMode,
+        fastMode, // Return fastMode state
         selection,
         highlightedNumber, // Return the sticky highlight state
         refreshState,

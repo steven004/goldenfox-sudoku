@@ -12,6 +12,7 @@ interface GameContextProps {
     selection: { row: number; col: number };
     highlightedNumber: number | null; // Sticky Highlight State
     isMuted: boolean;
+    fastMode: boolean; // Fast Mode (Digit-First Input)
 
     // Actions
     handleCellClick: (row: number, col: number) => void;
@@ -44,6 +45,7 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         gameState,
         timerSeconds,
         pencilMode,
+        fastMode,
         selection,
         highlightedNumber,
         refreshState,
@@ -113,6 +115,7 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         selection,
         highlightedNumber,
         isMuted,
+        fastMode,
         handleCellClick,
         handleNumberClick,
         handleActionClick,
