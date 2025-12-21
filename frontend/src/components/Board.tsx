@@ -9,27 +9,34 @@ interface BoardProps {
     selectedCol: number;
     onCellClick: (row: number, col: number) => void;
     isPencilMode: boolean;
+    highlightedNumber: number | null;
 }
 
-export const Board = React.memo(({ board, selectedRow, selectedCol, onCellClick, isPencilMode }: BoardProps) => {
+export const Board = React.memo(({ board, selectedRow, selectedCol, onCellClick, isPencilMode, highlightedNumber }: BoardProps) => {
     if (!board || !board.cells) {
         return <div className="text-white">Loading board...</div>;
     }
 
-    // Helper to check if cell has same value as selected cell
-    const selectedVal = (selectedRow !== -1 && selectedCol !== -1) ? board.cells[selectedRow][selectedCol].value : 0;
+    // Determine the value to highlight (Sticky or Active Cell)
+    // If highlightedNumber is Explicitly set (Sticky), use it.
+    // Otherwise, fallback to the selected cell's value (Standard).
+    // Note: Our hook logic now manages highlightedNumber exclusively to handle the stickiness, 
+    // so we can rely on it if provided. If null, it means "no highlight" or "standard peer highlight only".
 
+    const activeVal = highlightedNumber !== null ? highlightedNumber : 0;
+
+    // Helper to check if cell has same value as highlighted value
     const isSameValue = (r: number, c: number) => {
-        if (selectedVal === 0) return false;
-        return board.cells[r][c].value === selectedVal;
+        if (activeVal === 0) return false;
+        return board.cells[r][c].value === activeVal;
     };
 
     // Helper to check if a cell is a peer of the selected cell
     const isPeer = (r: number, c: number) => {
         if (selectedRow === -1 || selectedCol === -1) return false;
 
-        // Only highlight peers if the selected cell is BLANK
-        if (selectedVal !== 0) return false;
+        // Only highlight peers if NO active number is highlighted (Standard Mode)
+        if (activeVal !== 0) return false;
 
         if (r === selectedRow) return true;
         if (c === selectedCol) return true;
@@ -47,10 +54,10 @@ export const Board = React.memo(({ board, selectedRow, selectedCol, onCellClick,
         const rows = new Set<number>();
         const cols = new Set<number>();
 
-        if (selectedVal !== 0) {
+        if (activeVal !== 0) {
             board.cells.forEach((row, r) => {
                 row.forEach((cell, c) => {
-                    if (cell.value === selectedVal) {
+                    if (cell.value === activeVal) {
                         rows.add(r);
                         cols.add(c);
                     }
@@ -58,12 +65,12 @@ export const Board = React.memo(({ board, selectedRow, selectedCol, onCellClick,
             });
         }
         return { crosshatchRows: rows, crosshatchCols: cols };
-    }, [board, selectedVal]);
+    }, [board, activeVal]);
 
     const isCrosshatchPeer = (r: number, c: number) => {
-        if (selectedVal === 0) return false;
+        if (activeVal === 0) return false;
         // Don't crosshatch the active cells themselves (they are handled by isSameValue)
-        if (board.cells[r][c].value === selectedVal) return false;
+        if (board.cells[r][c].value === activeVal) return false;
 
         return crosshatchRows.has(r) || crosshatchCols.has(c);
     };

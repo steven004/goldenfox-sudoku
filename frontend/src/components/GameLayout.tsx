@@ -16,6 +16,7 @@ export const GameLayout: React.FC = () => {
         gameState,
         timerSeconds,
         selection,
+        highlightedNumber,
         pencilMode,
         isMuted,
         toggleMute,
@@ -117,6 +118,7 @@ export const GameLayout: React.FC = () => {
                                 selectedCol={selection.col}
                                 onCellClick={handleCellClick}
                                 isPencilMode={pencilMode}
+                                highlightedNumber={highlightedNumber}
                             />
                         </div>
 

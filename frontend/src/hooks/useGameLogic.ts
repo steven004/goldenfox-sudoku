@@ -22,6 +22,8 @@ export const useGameLogic = (onSound?: (type: 'click' | 'pop' | 'error' | 'erase
         }
     }, [transientError]);
 
+    const [highlightedNumber, setHighlightedNumber] = useState<number | null>(null);
+
     // Computed Game State (Base + Transient Overlay)
     const displayState = useMemo(() => {
         if (!gameState) return null;
@@ -79,6 +81,22 @@ export const useGameLogic = (onSound?: (type: 'click' | 'pop' | 'error' | 'erase
     const handleCellClick = (row: number, col: number) => {
         setSelection({ row, col });
         onSound?.('click');
+
+        // Sticky Highlight Logic
+        if (gameState && gameState.board.cells[row][col]) {
+            const cellVal = gameState.board.cells[row][col].value;
+            if (cellVal !== 0) {
+                // Always update highlight if clicking a filled cell
+                setHighlightedNumber(cellVal);
+            } else {
+                // If clicking a blank cell:
+                // If in Pencil Mode, KEEP the previous highlight (Sticky)
+                // If in Normal Mode, CLEAR the highlight (Standard Peer View)
+                if (!pencilMode) {
+                    setHighlightedNumber(null);
+                }
+            }
+        }
     };
 
     const handleNumberClick = async (num: number, forcePencil: boolean = false) => {
@@ -90,9 +108,12 @@ export const useGameLogic = (onSound?: (type: 'click' | 'pop' | 'error' | 'erase
             if (isNote) {
                 await ToggleCandidate(row, col, num);
                 onSound?.('pencil');
+                // Don't change highlight for notes, keep context
             } else {
                 await InputNumber(row, col, num);
                 onSound?.('pop');
+                // When inputting a number, implicitly switch highlight to that number
+                setHighlightedNumber(num);
             }
             refreshState();
             setTimeout(refreshState, 50);
@@ -148,6 +169,7 @@ export const useGameLogic = (onSound?: (type: 'click' | 'pop' | 'error' | 'erase
                     await NewGame(difficulty || "Easy");
                     setSelection({ row: 4, col: 4 });
                     setTimerSeconds(0);
+                    setHighlightedNumber(null); // Reset highlight
                     refreshState();
                     onSound?.('click');
                     break;
@@ -155,6 +177,7 @@ export const useGameLogic = (onSound?: (type: 'click' | 'pop' | 'error' | 'erase
                     await RestartGame();
                     setSelection({ row: 4, col: 4 });
                     setTimerSeconds(0);
+                    setHighlightedNumber(null); // Reset highlight
                     refreshState();
                     onSound?.('erase');
                     break;
@@ -176,6 +199,7 @@ export const useGameLogic = (onSound?: (type: 'click' | 'pop' | 'error' | 'erase
         timerSeconds,
         pencilMode,
         selection,
+        highlightedNumber, // Return the sticky highlight state
         refreshState,
         handleCellClick,
         handleNumberClick,

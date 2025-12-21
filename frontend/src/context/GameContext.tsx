@@ -10,6 +10,7 @@ interface GameContextProps {
     timerSeconds: number;
     pencilMode: boolean;
     selection: { row: number; col: number };
+    highlightedNumber: number | null; // Sticky Highlight State
     isMuted: boolean;
 
     // Actions
@@ -44,6 +45,7 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         timerSeconds,
         pencilMode,
         selection,
+        highlightedNumber,
         refreshState,
         handleCellClick,
         handleNumberClick,
@@ -109,6 +111,7 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         timerSeconds,
         pencilMode,
         selection,
+        highlightedNumber,
         isMuted,
         handleCellClick,
         handleNumberClick,
