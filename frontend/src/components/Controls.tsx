@@ -9,7 +9,7 @@ interface ControlsProps {
     completionCounts: Record<number, number>;
 }
 
-export const Controls: React.FC<ControlsProps> = ({ onNumberClick, onActionClick, pencilMode, selectedNumber, completionCounts }) => {
+const ControlsBase: React.FC<ControlsProps> = ({ onNumberClick, onActionClick, pencilMode, selectedNumber, completionCounts }) => {
     return (
         <div className="flex flex-col gap-6 w-full">
             {/* Row 1: Number Pad (Glass Orbs) */}
@@ -93,3 +93,5 @@ export const Controls: React.FC<ControlsProps> = ({ onNumberClick, onActionClick
         </div>
     );
 };
+
+export const Controls = React.memo(ControlsBase);
