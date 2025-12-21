@@ -66,7 +66,7 @@ const getBorderClasses = (row: number, col: number): string => {
 
 // --- Component ---
 
-export const CellComponent: React.FC<CellProps> = ({
+const CellComponentBase: React.FC<CellProps> = ({
     cell,
     row,
     col,
@@ -111,3 +111,5 @@ export const CellComponent: React.FC<CellProps> = ({
         </div>
     );
 };
+
+export const CellComponent = React.memo(CellComponentBase);

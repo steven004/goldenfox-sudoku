@@ -11,18 +11,25 @@ interface BoardProps {
     isPencilMode: boolean;
 }
 
-export const Board: React.FC<BoardProps> = ({ board, selectedRow, selectedCol, onCellClick, isPencilMode }) => {
+export const Board = React.memo(({ board, selectedRow, selectedCol, onCellClick, isPencilMode }: BoardProps) => {
     if (!board || !board.cells) {
         return <div className="text-white">Loading board...</div>;
     }
+
+    // Helper to check if cell has same value as selected cell
+    const selectedVal = (selectedRow !== -1 && selectedCol !== -1) ? board.cells[selectedRow][selectedCol].value : 0;
+
+    const isSameValue = (r: number, c: number) => {
+        if (selectedVal === 0) return false;
+        return board.cells[r][c].value === selectedVal;
+    };
 
     // Helper to check if a cell is a peer of the selected cell
     const isPeer = (r: number, c: number) => {
         if (selectedRow === -1 || selectedCol === -1) return false;
 
         // Only highlight peers if the selected cell is BLANK
-        const selectedCell = board.cells[selectedRow][selectedCol];
-        if (selectedCell.value !== 0) return false;
+        if (selectedVal !== 0) return false;
 
         if (r === selectedRow) return true;
         if (c === selectedCol) return true;
@@ -34,29 +41,24 @@ export const Board: React.FC<BoardProps> = ({ board, selectedRow, selectedCol, o
         return blockRow === selBlockRow && blockCol === selBlockCol;
     };
 
-    // Helper to check if cell has same value as selected cell
-    const selectedVal = (selectedRow !== -1 && selectedCol !== -1) ? board.cells[selectedRow][selectedCol].value : 0;
 
-    const isSameValue = (r: number, c: number) => {
-        if (selectedVal === 0) return false;
-        return board.cells[r][c].value === selectedVal;
-    };
+    // Smart Crosshatching Logic (Memoized)
+    const { crosshatchRows, crosshatchCols } = React.useMemo(() => {
+        const rows = new Set<number>();
+        const cols = new Set<number>();
 
-    // Smart Crosshatching Logic
-    // Pre-calculate active rows/cols for the selected value
-    const crosshatchRows = new Set<number>();
-    const crosshatchCols = new Set<number>();
-
-    if (selectedVal !== 0) {
-        board.cells.forEach((row, r) => {
-            row.forEach((cell, c) => {
-                if (cell.value === selectedVal) {
-                    crosshatchRows.add(r);
-                    crosshatchCols.add(c);
-                }
+        if (selectedVal !== 0) {
+            board.cells.forEach((row, r) => {
+                row.forEach((cell, c) => {
+                    if (cell.value === selectedVal) {
+                        rows.add(r);
+                        cols.add(c);
+                    }
+                });
             });
-        });
-    }
+        }
+        return { crosshatchRows: rows, crosshatchCols: cols };
+    }, [board, selectedVal]);
 
     const isCrosshatchPeer = (r: number, c: number) => {
         if (selectedVal === 0) return false;
@@ -89,4 +91,4 @@ export const Board: React.FC<BoardProps> = ({ board, selectedRow, selectedCol, o
             </div>
         </div>
     );
-};
+});
