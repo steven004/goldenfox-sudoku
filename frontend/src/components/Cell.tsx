@@ -32,7 +32,7 @@ const getBackgroundColor = (
     if (isSameValue && cell.value !== 0) return 'bg-sudoku-highlight'; // Same-Value Highlight
 
     // Prioritize Crosshatch over standard Peer if active
-    if (isCrosshatchPeer) return 'bg-[#D68D38]/20'; // Subtle Beam (Brand Orange 20%)
+    if (isCrosshatchPeer) return 'bg-sudoku-crosshatch'; // Subtle Beam (Brand Orange 20%)
 
     if (isPeer) return 'bg-sudoku-peer'; // Peer Highlight (Standard)
     return cell.given ? 'bg-sudoku-cell-given' : 'bg-sudoku-cell-bg'; // Base Color

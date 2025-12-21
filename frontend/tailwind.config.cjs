@@ -28,6 +28,7 @@ module.exports = {
                     teal: '#00b894',
                     'teal-light': '#00cec9',
                     grid: '#B2BEC3',
+                    crosshatch: 'rgba(214, 141, 56, 0.2)',
                 }
             },
             fontFamily: {
